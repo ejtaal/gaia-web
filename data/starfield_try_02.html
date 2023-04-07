@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>GAIA 3D trackball!</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				background-color: #ccc;
+				color: #000;
+			}
+			a {
+				color: #f00;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - trackball controls<br />
+			MOVE mouse &amp; press LEFT/A: rotate, MIDDLE/S: zoom, RIGHT/D: pan
+		</div>
+
+		<!-- 
+			<script type="text/javascript" src="./stars-test-01.js"></script>
+		 -->
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/",
+					"local-data/": "./local-data/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import Stats from 'three/addons/libs/stats.module.js';
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+			import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+
+			let perspectiveCamera, orthographicCamera, controls, scene, renderer, stats;
+
+			const params = {
+				orthographicCamera: false,
+				'option 1': false,
+				'option 2': true
+			};
+
+			const frustumSize = 400;
+			var star_max_dist = 10**5;
+			var all_stars = {};
+
+			init();
+			animate();
+
+
+			function add_stars_to_scene( scene, star_coords) {
+				const positions = [];
+				
+				// const pw_colors = [];
+				var colors = [];
+				var color_array = [];
+				var veff_color = 0;
+				var Wavelength = 0;
+				var Red = 0;
+				var Green = 0;
+				var Blue = 0;
+				var Teff = 0;
+				const color = new THREE.Color();
+
+				console.log( star_coords.length);
+				// console.log( star_colors.length);
+				console.log( star_coords[star_coords.length-1]);
+
+				var apparent_magnitude = 10;
+				var dimming_factor = 1;
+				var temperature = 0;
+				var red, green, blue;
+				var distance;
+				var abs_magnitude;
+				var lightyear_p_parsec = 3.261563777
+				var x, y, z;
+				var temp_fudge = 1.5;
+				//positions.push( 100, 100, 100 );
+				//positions.push( 200, 200, 200 );
+				for ( var i = 0; i < star_coords.length; i += 1) {
+					//console.log( pw_coords[0]);
+					//console.log( i);
+					//console.log( i, pw_colors.length, );
+					x = star_coords[i][0];
+					y = star_coords[i][1]
+					z = star_coords[i][2]
+					positions.push( x, y, z);
+					veff_color = star_coords[i][3];
+					// apparent_magnitude = star_coords[i][4];
+					abs_magnitude = star_coords[i][4];
+
+					// TODO: Add filtering based on GUI options selected
+					distance = Math.sqrt( x**2 + y**2 + z**2)
+					if (distance > star_max_dist) star_max_dist = distance;
+
+
+					// m = M−5+5log10​(D)
+					// m -(−5+5log10​(D))= M
+					// m +5-5log10​(D)= M
+					
+					// abs_magnitude = apparent_magnitude + 5 - 5*Math.log10( distance) <- now pre-calculated
+
+					// M = m +5-5log10​(D)
+					// where:
+					//   M - Absolute magnitude
+					//   m – Apparent magnitude of the star; and
+					//   D – Distance between the star and Earth, measured in parsecs.
+
+
+
+					// dimming_factor = ((400 - (apparent_magnitude**2)) / 400)
+					dimming_factor = ((900 - ((abs_magnitude+8)**2)) / 900)
+					
+					if (dimming_factor > 1) dimming_factor = 1;
+					if (dimming_factor < 0.1) dimming_factor = 0.1;
+
+					if (veff_color == 0) { color.setRGB( 1, 1, 1) }
+					else {
+						// νeff, in μm−1
+						// veff -> rgb: https://stackoverflow.com/questions/1472514/convert-light-frequency-to-rgb
+						// Teff -> rgb: https://www.npmjs.com/package/color-temperature?activeTab=code
+
+						// Wavelength = 1 / (veff_color * 10**-3)
+
+						Teff = 2.8977719 * veff_color * 1000 * temp_fudge
+
+						temperature = Teff / 100.0;
+
+						if (temperature <= 66.0) {
+						red = 255;
+						} else {
+						red = temperature - 60.0;
+						red = 329.698727446 * Math.pow(red, -0.1332047592);
+						if (red < 0) red = 0;
+						if (red > 255) red = 255;
+						}
+
+						/* Calculate green */
+
+						if (temperature <= 66.0) {
+						green = temperature;
+						green = 99.4708025861 * Math.log(green) - 161.1195681661;
+						if (green < 0) green = 0;
+						if (green > 255) green = 255;
+						} else {
+						green = temperature - 60.0;
+						green = 288.1221695283 * Math.pow(green, -0.0755148492);
+						if (green < 0) green = 0;
+						if (green > 255) green = 255;
+						}
+
+						/* Calculate blue */
+
+						if (temperature >= 66.0) {
+						blue = 255;
+						} else {
+
+						if (temperature <= 19.0) {
+							blue = 0;
+						} else {
+							blue = temperature - 10;
+							blue = 138.5177312231 * Math.log(blue) - 305.0447927307;
+							if (blue < 0) blue = 0;
+							if (blue > 255) blue = 255;
+						}
+						}
+
+						// console.log( Wavelength)
+						// if (i % 100000 == 0) { 
+						// 	console.log( apparent_magnitude, dimming_factor, Teff, red, green, blue) 
+						// 	console.log( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
+						// }
+						color.setRGB( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
+					}
+					colors.push( color.r, color.g, color.b );
+				};
+
+
+				const stars_geometry = new THREE.BufferGeometry();
+				stars_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+				stars_geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+
+				stars_geometry.computeBoundingSphere();
+
+				const point_material = new THREE.PointsMaterial( { size: 1, vertexColors: true } );
+				// const point_material = new THREE.PointsMaterial( { size: 15, vertexColors: true } );
+
+				var points = new THREE.Points( stars_geometry, point_material );
+				scene.add( points );
+				console.log('DEBUG1', star_max_dist)
+				
+				const axesHelper = new THREE.AxesHelper( star_max_dist );
+				scene.add( axesHelper );
+
+
+			}
+
+// const loadScript = (FILE_URL, async = true, type = "text/javascript") => {
+	// const loadScript = (scene, sky_element, async = true, type = "text/javascript") => {
+function loadScript (scene, sky_element, async = false, type = "text/javascript") {
+	var filename = 'local-data/' + sky_element + '.js';
+	var FILE_URL = filename;
+
+    return new Promise((resolve, reject) => {
+        try {
+            const scriptEle = document.createElement("script");
+            scriptEle.type = type;
+            scriptEle.async = async;
+            scriptEle.src = FILE_URL;
+
+            scriptEle.addEventListener("load", (ev) => {
+                resolve({ status: true });
+				console.log("File "+FILE_URL+" loaded.", stars.length, stars[0])
+				all_stars[sky_element] = stars;
+				// add_stars_to_scene( scene, stars)
+				console.log('DEBUG3', star_max_dist)
+				console.log('DEBUG32', Object.keys(all_stars))
+            });
+
+            scriptEle.addEventListener("error", (ev) => {
+                reject({
+                    status: false,
+                    message: `Failed to load the script ＄{FILE_URL}`
+                });
+            });
+
+            document.body.appendChild(scriptEle);
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+// loadScript("file1_url").then( data  => {
+//         console.log("Script loaded successfully", data);
+//     })
+//     .catch( err => {
+//         console.error(err);
+// });
+
+
+			function loadJS_Promise( scene, sky_element, async = true) {
+				var filename = 'local-data/' + sky_element + '.js';
+				var FILE_URL = filename;
+				
+				let scriptEle = document.createElement("script");
+
+				scriptEle.setAttribute("src", FILE_URL);
+				scriptEle.setAttribute("type", "text/javascript");
+				scriptEle.setAttribute("async", async);
+
+				document.body.appendChild(scriptEle);
+
+				// success event 
+				scriptEle.addEventListener("load", () => {
+					console.log("File "+FILE_URL+" loaded.", stars.length, stars[0])
+					add_stars_to_scene( scene, stars)
+					console.log('DEBUG3', star_max_dist)
+				});
+				// error event
+				scriptEle.addEventListener("error", (ev) => {
+					console.log("Error on loading file", ev);
+				});
+			}
+
+			function loadJS( scene, sky_element, async = true) {
+
+				var filename = 'local-data/' + sky_element + '.js';
+				var FILE_URL = filename;
+				
+				let scriptEle = document.createElement("script");
+
+				scriptEle.setAttribute("src", FILE_URL);
+				scriptEle.setAttribute("type", "text/javascript");
+				scriptEle.setAttribute("async", async);
+
+				document.body.appendChild(scriptEle);
+
+				// success event 
+				scriptEle.addEventListener("load", () => {
+					console.log("File "+FILE_URL+" loaded.", stars.length, stars[0])
+					// add_stars_to_scene( scene, stars)
+					console.log('DEBUG3', star_max_dist)
+				});
+				// error event
+				scriptEle.addEventListener("error", (ev) => {
+					console.log("Error on loading file", ev);
+				});
+			}
+			// loadJS("file1_path", true);
+
+			// // If we set async false, file2 is loaded and executed first, then file3 will be loaded 
+			// loadJS("file2_path", false); 
+
+			// function load_file( sky_element) {
+			// 	filename = sky_element + '.js'
+			// 	var data = {}
+			// 	import * as data from 'local-data/' + filename;
+
+			// 	console.log( 'Loaded data from: ', filename, data[ sky_element][0])
+
+			// 	
+			/*
+				// <script type="text/javascript" src="./stars-test-01.js"> 
+
+			*/
+
+			function init() {
+
+				const aspect = window.innerWidth / window.innerHeight;
+
+				scene = new THREE.Scene();
+				loadScript( scene, 'GaiaSource_005264-006601')
+				loadScript( scene, 'GaiaSource_003112-005263')
+
+				perspectiveCamera = new THREE.PerspectiveCamera( 60, aspect, 1, star_max_dist );
+				perspectiveCamera.position.z = 500;
+
+				orthographicCamera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, 1, star_max_dist );
+				orthographicCamera.position.z = 500;
+
+				// world
+
+				// scene.background = new THREE.Color( 0xcccccc );
+				// scene.fog = new THREE.FogExp2( 0xcccccc, 0.002 );
+
+				// const geometry = new THREE.CylinderGeometry( 0, 10, 30, 4, 1 );
+				// const material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
+
+				// for ( let i = 0; i < 500; i ++ ) {
+
+				// 	const mesh = new THREE.Mesh( geometry, material );
+				// 	mesh.position.x = ( Math.random() - 0.5 ) * 1000;
+				// 	mesh.position.y = ( Math.random() - 0.5 ) * 1000;
+				// 	mesh.position.z = ( Math.random() - 0.5 ) * 1000;
+				// 	mesh.updateMatrix();
+				// 	mesh.matrixAutoUpdate = false;
+				// 	scene.add( mesh );
+
+				// }
+
+				// // lights
+
+				// const dirLight1 = new THREE.DirectionalLight( 0xffffff );
+				// dirLight1.position.set( 1, 1, 1 );
+				// scene.add( dirLight1 );
+
+				// const dirLight2 = new THREE.DirectionalLight( 0x002288 );
+				// dirLight2.position.set( - 1, - 1, - 1 );
+				// scene.add( dirLight2 );
+
+				// const ambientLight = new THREE.AmbientLight( 0x222222 );
+				// scene.add( ambientLight );
+
+				// renderer
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				stats = new Stats();
+				document.body.appendChild( stats.dom );
+
+
+				// load_file('7gaiasources');
+				// loadJS( scene, '7gaiasources', false);
+				// loadJS( scene, 'GaiaSource_005264-006601', false);
+				// loadJS( scene, 'GaiaSource_003112-005263', false);
+
+
+				console.log('DEBUG2', star_max_dist)
+				console.log('DEBUG2', Object.keys(all_stars))
+
+				const axesHelper = new THREE.AxesHelper( star_max_dist );
+				scene.add( axesHelper );
+
+				var rendered_sky_elements = []
+				const interval = setInterval(function() {
+   					// method to be executed;
+					console.log( 'DEBUG4: ', Date())
+					for (var element in all_stars) {
+						if ( ! rendered_sky_elements.includes(element)) { 
+							console.log( 'Need to parse element ' + element)
+							// only parse 1 to save resources
+							add_stars_to_scene( scene, all_stars[ element])
+							rendered_sky_elements.push( element)
+							return 0
+						}
+					}
+				}, 5000);
+
+				//
+
+				const gui = new GUI();
+
+				// TODO: build gui option for each params option
+
+				gui.add( params, 'orthographicCamera' ).name( 'use orthographic' ).onChange( function ( value ) {
+
+					controls.dispose();
+
+					createControls( value ? orthographicCamera : perspectiveCamera );
+
+				} );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				createControls( perspectiveCamera );
+
+			}
+
+			function createControls( camera ) {
+
+				controls = new TrackballControls( camera, renderer.domElement );
+
+				controls.rotateSpeed = 1.0;
+				controls.zoomSpeed = 1.2;
+				controls.panSpeed = 0.8;
+
+				controls.keys = [ 'KeyA', 'KeyS', 'KeyD' ];
+
+			}
+
+			function onWindowResize() {
+
+				const aspect = window.innerWidth / window.innerHeight;
+
+				perspectiveCamera.aspect = aspect;
+				perspectiveCamera.updateProjectionMatrix();
+
+				orthographicCamera.left = - frustumSize * aspect / 2;
+				orthographicCamera.right = frustumSize * aspect / 2;
+				orthographicCamera.top = frustumSize / 2;
+				orthographicCamera.bottom = - frustumSize / 2;
+				orthographicCamera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				controls.handleResize();
+
+			}
+
+			var rendered_sky_elements = [];
+
+			function animate() {
+
+
+				requestAnimationFrame( animate );
+
+				controls.update();
+
+				stats.update();
+
+				render();
+
+			}
+
+			function render() {
+
+				const camera = ( params.orthographicCamera ) ? orthographicCamera : perspectiveCamera;
+
+				renderer.render( scene, camera );
+
+			}
+
+
+		</script>
+
+	</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html><head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Gaia-web: GAIA DR3 analysis</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+  <style id="compiled-css" type="text/css">
+    body { margin: 0; }
+canvas { width: 100vw; height: 10vh; display: block; }
+
+    /* EOS */
+  </style>
+
+</head>
+<body>
+    <canvas></canvas>
+
+
+
+
+<!--
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.1/three.min.js" integrity="sha512-pHIFefLE+ZH/TmpBDxPoDyC8kBxD773LqGShSv9VSiMFLluVRKKOFO9JA+TgnQruQEKovPtZ3vEz1Hwo/F4J2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+-->
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.1/three.min.js",
+      "three/addons/": "./"
+    }
+  }
+</script>
+
+<script type="text/javascript" src="./stars-test-01.js"></script>
+
+<script type="module">//<![CDATA[
+
+import * as THREE from 'three';
+import Stats from 'three/addons/libs/stats.module.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+// import * as THREE from '';
+import { TrackballControls } from 'three/addons/TrackballControls.js';
+
+console.log( star_max_dist);
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize( window.innerWidth, window.innerHeight );
+document.body.appendChild( renderer.domElement );
+
+const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, star_max_dist * 5 );
+camera.position.set( 0, 0, 100 );
+camera.lookAt( 0, 0, 0 );
+
+const scene = new THREE.Scene();
+
+//create a blue LineBasicMaterial
+const material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+
+
+const positions = [];
+// const pw_colors = [];
+var colors = [];
+var color_array = [];
+var veff_color = 0;
+var Wavelength = 0;
+var Red = 0;
+var Green = 0;
+var Blue = 0;
+var Teff = 0;
+const color = new THREE.Color();
+
+console.log( star_coords.length);
+// console.log( star_colors.length);
+console.log( star_coords[star_coords.length-1]);
+// console.log( star_colors[star_colors.length-1]);
+
+var apparent_magnitude = 10;
+var dimming_factor = 1;
+var temperature = 0;
+var red, green, blue;
+var distance;
+var abs_magnitude;
+var lightyear_p_parsec = 3.261563777
+var x, y, z;
+var temp_fudge = 1.5;
+//positions.push( 100, 100, 100 );
+//positions.push( 200, 200, 200 );
+for ( var i = 0; i < star_coords.length; i += 1) {
+  //console.log( pw_coords[0]);
+  //console.log( i);
+  //console.log( i, pw_colors.length, );
+  x = star_coords[i][0];
+  y = star_coords[i][1]
+  z = star_coords[i][2]
+	positions.push( x, y, z);
+  veff_color = star_coords[i][3];
+  apparent_magnitude = star_coords[i][4];
+  distance = Math.sqrt( x**2 + y**2 + z**2) * lightyear_p_parsec
+
+  // m = M−5+5log10​(D)
+  // m -(−5+5log10​(D))= M
+  // m +5-5log10​(D)= M
+  
+  abs_magnitude = apparent_magnitude + 5 - 5*Math.log10( distance)
+
+  // M = m +5-5log10​(D)
+  // where:
+  //   M - Absolute magnitude
+  //   m – Apparent magnitude of the star; and
+  //   D – Distance between the star and Earth, measured in parsecs.
+
+
+
+  // dimming_factor = ((400 - (apparent_magnitude**2)) / 400)
+  dimming_factor = ((900 - ((abs_magnitude+8)**2)) / 900)
+  
+  if (dimming_factor > 1) dimming_factor = 1;
+  if (dimming_factor < 0.1) dimming_factor = 0.1;
+
+  if (veff_color == 0) { color.setRGB( 1, 1, 1) }
+  else {
+    // νeff, in μm−1
+    // veff -> rgb: https://stackoverflow.com/questions/1472514/convert-light-frequency-to-rgb
+    // Teff -> rgb: https://www.npmjs.com/package/color-temperature?activeTab=code
+
+    // Wavelength = 1 / (veff_color * 10**-3)
+
+    Teff = 2.8977719 * veff_color * 1000 * temp_fudge
+
+    temperature = Teff / 100.0;
+
+    if (temperature <= 66.0) {
+      red = 255;
+    } else {
+      red = temperature - 60.0;
+      red = 329.698727446 * Math.pow(red, -0.1332047592);
+      if (red < 0) red = 0;
+      if (red > 255) red = 255;
+    }
+
+    /* Calculate green */
+
+    if (temperature <= 66.0) {
+      green = temperature;
+      green = 99.4708025861 * Math.log(green) - 161.1195681661;
+      if (green < 0) green = 0;
+      if (green > 255) green = 255;
+    } else {
+      green = temperature - 60.0;
+      green = 288.1221695283 * Math.pow(green, -0.0755148492);
+      if (green < 0) green = 0;
+      if (green > 255) green = 255;
+    }
+
+    /* Calculate blue */
+
+    if (temperature >= 66.0) {
+      blue = 255;
+    } else {
+
+      if (temperature <= 19.0) {
+        blue = 0;
+      } else {
+        blue = temperature - 10;
+        blue = 138.5177312231 * Math.log(blue) - 305.0447927307;
+        if (blue < 0) blue = 0;
+        if (blue > 255) blue = 255;
+      }
+    }
+
+    // console.log( Wavelength)
+    if (i % 10000 == 0) { 
+      console.log( apparent_magnitude, dimming_factor, Teff, red, green, blue) 
+      console.log( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
+    }
+    color.setRGB( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
+  }
+	colors.push( color.r, color.g, color.b );
+};
+
+
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+
+geometry.computeBoundingSphere();
+
+const point_material = new THREE.PointsMaterial( { size: 1, vertexColors: true } );
+// const point_material = new THREE.PointsMaterial( { size: 15, vertexColors: true } );
+
+var points = new THREE.Points( geometry, point_material );
+scene.add( points );
+
+//scene.add( line );
+// scene.add( line2 );
+
+const axesHelper = new THREE.AxesHelper( star_max_dist );
+scene.add( axesHelper );
+
+
+renderer.render( scene, camera );
+renderer.setAnimationLoop( animation );
+
+const offset = new THREE.Vector3();
+var distance = star_max_dist * 2;
+
+
+
+createControls( perspectiveCamera );
+
+
+
+function createControls( camera ) {
+
+  controls = new TrackballControls( camera, renderer.domElement );
+
+  controls.rotateSpeed = 1.0;
+  controls.zoomSpeed = 1.2;
+  controls.panSpeed = 0.8;
+
+  controls.keys = [ 'KeyA', 'KeyS', 'KeyD' ];
+
+}
+
+
+
+
+
+// *2.5;
+/*
+var distance = 4000;
+var distance = 1000;
+*/
+
+/*
+var geom = geometry2;
+geom.centroid = new THREE.Vector3();
+for (var i = 0, l = geom.vertices.length; i < l; i++) {
+    geom.centroid.addSelf(geom.vertices[i]);
+}
+geom.centroid.divideScalar(geom.vertices.length);
+
+geometry2.computeBoundingBox();
+*/
+
+function animation( time ) {
+
+	// offset.x = distance * Math.sin( time * 0.0001 );
+  // offset.y = distance * Math.cos( time * 0.0002 );
+  // offset.z = distance / Math.cos( time * 0.0003 );
+
+  /*
+  camera.position.set( 
+    distance * Math.cos( time * 0.0002 ),
+    distance / 3,
+    distance * Math.sin( time * 0.0002 )
+  )
+  */
+  
+  camera.position.set( 
+    // star_max_dist / 2 + distance * Math.cos( time * 0.0002 ),
+    // star_max_dist / 2 + (distance * Math.cos( (time+1) * 0.0001 )) / 2,
+    // star_max_dist / 2 + distance * Math.sin( time * 0.0002 )
+  
+    distance * Math.cos( time * 0.0002 ),
+    // (distance * Math.cos( (time+1) * 0.0001 )) / 2,
+    distance * 0.2, 
+    distance * Math.sin( time * 0.0002 )
+  
+  )
+  
+/*  camera.position.set( 
+    Math.sqrt( distance - distance*(Math.cos(time * 0.0002))^2), 
+    Math.sqrt( distance - distance*(Math.sin(time * 0.0002))^2), 
+    distance );
+   */    
+    //camera.lookAt( line2.position );
+    // camera.lookAt( geometry2.boundingSphere.center );
+    
+    // camera.lookAt( star_max_dist /2, star_max_dist /2, star_max_dist /2 );
+    
+    //camera.lookAt( geometry2.boundingBox.center );
+  
+    //camera.position.copy( line2.position ).add( offset );
+  //camera.lookAt( line2.position );
+  camera.lookAt( 0, 0, 0 );
+  
+    renderer.render( scene, camera );
+  
+  }
+  /* 
+  // Make a cube.
+  const geometry = new THREE.BoxGeometry(200, 200, 200);
+  
+  
+  // Make a material
+  const material = new THREE.MeshBasicMaterial({
+  color: 0x00FF00,
+  wireframe: true,
+  });
+  
+  // Create a mesh based on the geometry and material
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+function resize() {
+  var width = renderer.domElement.clientWidth;
+  var height = renderer.domElement.clientHeight;
+  if (renderer.domElement.width !== width || renderer.domElement.height !== height) {
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  }
+}
+
+function animate(time) {
+  time *= 0.001;  // seconds
+
+	camera.position.set( Math.cos(time) * 100, Math.sin(time)*100, 10 );
+	camera.lookAt( 0, 0, 0 );
+
+/*   resize();
+  line.rotation.x = time * 0.5;
+  line.rotation.y = time * 1;
+  line.rotation.z = time * 1; */
+
+/*   renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+  }  */
+
+/* requestAnimationFrame(animate); */
+
+
+  //]]></script>
+
+  <!--
+  <canvas style="display: block; width: 657px; height: 654px;" 
+  data-engine="three.js r150" width="657" height="654"></canvas>
+
+  <script>
+    // tell the embed parent frame the height of the content
+    if (window.parent && window.parent.parent){
+      window.parent.parent.postMessage(["resultsFrame", {
+        height: document.body.getBoundingClientRect().height,
+        slug: "peocyf20"
+      }], "*")
+    }
+
+    // always overwrite window.name, in case users try to set it manually
+    window.name = "result"
+  </script>
+
+    <script>
+      let allLines = []
+
+      window.addEventListener("message", (message) => {
+        if (message.data.console){
+          let insert = document.querySelector("#insert")
+          allLines.push(message.data.console.payload)
+          insert.innerHTML = allLines.join(";\r")
+
+          let result = eval.call(null, message.data.console.payload)
+          if (result !== undefined){
+            console.log(result)
+          }
+        }
+      })
+    </script>
+
+-->
+
+</body></html>
