@@ -92,12 +92,12 @@ all_stars = pd.read_csv( csvStringIO, sep=",", usecols=columns_to_keep )
 # filtered_stars = df[ (df['parallax'] > 0) & (df['parallax_over_error'] < 1)]
 # filtered_stars = all_stars[ ( all_stars['parallax'] > 0)]
 
-print( all_stars)
+# print( all_stars)
 # TODO, find best value for cut off
 # filtered_stars = all_stars[ ( all_stars['parallax'] > 0.001)]
 # filtered_stars = all_stars[ ( all_stars['parallax_over_error'] > 1)]
 # df = all_stars[ ( all_stars['parallax_over_error'] > 1)].copy()
-df = all_stars[ ( all_stars['parallax_over_error'] > 0.5) & ( all_stars['parallax'] > 0.001)].copy()
+df = all_stars[ ( all_stars['parallax_over_error'] > 0.5) & ( all_stars['parallax'] > 0)].copy()
 
 import numpy as np
 
@@ -123,17 +123,18 @@ df['abs_magnitude'] = df['phot_g_mean_mag'] + 5 - 5 * np.log10( df['dist'] * lig
 # TODO: calc absolute magnitude
 
 filtered_stars = df
-save_db_stars = filtered_stars[ ['parallax', 'parallax_error', 'x', 'y','z', 'color', 'abs_magnitude']]
+save_db_stars = filtered_stars[ ['parallax', 'parallax_error', 'x', 'y', 'z', 'color', 'abs_magnitude']]
+# save_db_stars = filtered_stars[ [ 'x', 'y', 'z', 'color', 'abs_magnitude']]
 # print( filtered_stars)
 print( save_db_stars)
 
 
-# print( f"[+] Writing filtered stars to {sqlite_db} ...")
-# import sqlite3
-# conn = sqlite3.connect( sqlite_db)
-# save_db_stars.to_sql( 'gaia_source_filtered', conn, if_exists='replace', index=False)
+print( f"[+] Writing filtered stars to {sqlite_db} ...")
+import sqlite3
+conn = sqlite3.connect( sqlite_db)
+save_db_stars.to_sql( 'gaia_source_filtered', conn, if_exists='replace', index=False)
 
-# exit(0)
+exit(0)
 
 # stars_xyz_list = filtered_stars[ ['x','y','z']].itertuples(index=False, name=None)
 # records is the fastest way to extract a list of tuples
