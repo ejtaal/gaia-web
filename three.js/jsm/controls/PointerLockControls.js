@@ -6,6 +6,7 @@ import {
 
 const _euler = new Euler( 0, 0, 0, 'YXZ' );
 const _vector = new Vector3();
+const camera_vector = new Vector3();
 
 const _changeEvent = { type: 'change' };
 const _lockEvent = { type: 'lock' };
@@ -80,7 +81,9 @@ class PointerLockControls extends EventDispatcher {
 
 		const camera = this.camera;
 
+
 		_vector.setFromMatrixColumn( camera.matrix, 0 );
+		
 
 		_vector.crossVectors( camera.up, _vector );
 
@@ -95,6 +98,26 @@ class PointerLockControls extends EventDispatcher {
 		_vector.setFromMatrixColumn( camera.matrix, 0 );
 
 		camera.position.addScaledVector( _vector, distance );
+
+	}
+
+	moveUp( distance ) {
+
+		const camera = this.camera;
+
+		camera.getWorldDirection( camera_vector );
+
+		_vector.y = camera_vector.y;
+		
+		_vector.setFromMatrixColumn( camera.matrix, 0 );
+
+		if (distance != 0) {
+			// console.log('_vector: ', _vector)
+			// console.log('camera.position before: ', camera.position)
+			camera.position.y += distance;
+			// console.log('camera.position after: ', camera.position)
+		}
+
 
 	}
 
