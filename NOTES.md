@@ -12,8 +12,9 @@ Columns to include for which purpose:
   - mark stars known with exoplanets
   - display arrows as per calculated 3d motion vector
   - allow warp-like zooming/moving
+  - allow sharing of location+view angle to pinpoint interesting galactic locations such as star clusters etc.
 - 3D galaxy field
-  - distance ~= red shift?
+  - Galaxy candidates - redshifts 	1,367,153
 
 - GUI requirements
   - toggle between Sol-centered viewing and Star Trek fly through mode (plus warp engage mode of course)

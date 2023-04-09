@@ -119,8 +119,14 @@ df['color'] = df['nu_eff_used_in_astrometry']
 df.color.fillna( df.pseudocolour, inplace=True)
 df.color.fillna( 0, inplace=True)
 df['phot_g_mean_mag'].fillna( 10, inplace=True)
+
+# Calc absolute magnitude
+# // M = m +5-5log10​(D)
+# // where:
+# //   M - Absolute magnitude
+# //   m – Apparent magnitude of the star; and
+# //   D – Distance between the star and Earth, measured in parsecs.
 df['abs_magnitude'] = df['phot_g_mean_mag'] + 5 - 5 * np.log10( df['dist'] * lightyear_p_parsec)
-# TODO: calc absolute magnitude
 
 filtered_stars = df
 save_db_stars = filtered_stars[ ['parallax', 'parallax_error', 'x', 'y', 'z', 'color', 'abs_magnitude']]

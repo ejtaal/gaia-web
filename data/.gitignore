@@ -1,3 +1,6 @@
-GaiaSource_.js
+GaiaSource_*.js
 *.sqlite
 *.csv.gz
+favicon.ico
+gaia-web-sky-elements.js
+__pycache__/
