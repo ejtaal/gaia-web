@@ -2,7 +2,7 @@
 
 Scripts to process GAIA DR3+ data and convert it into a Three.js visualization for the web.
 
-A word only conveys a milli-picture, so here is a screenshot of work in progress:
+A word only conveys a milli-picture, so here is a screenshot of work in progress, showing a side view of the Hyades cluster with Sol at the axes origin:
 
 ![Gaia Web @ Hyades open cluster](GAIA-Web_3D_Starfield_v0.1.png)
 
