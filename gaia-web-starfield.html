@@ -106,6 +106,8 @@ Please be patient as star data is loaded in the background.
 		<!-- Import maps polyfill -->
 		<!-- Remove this when import maps will be widely supported -->
 		<script async src="./libs/es-module-shims.js"></script>
+        <script src="./libs/tween.umd.js"></script>
+
 
 		<script type="importmap">
 			{
@@ -144,9 +146,34 @@ let warp_enabled = false;
 let global_sizeAttenuation = true;
 let global_sizeAttenuation_multiplier = 1;
 
-// let stars_filter = 'da_hood';
-let stars_filter = 'galactic';
+let stars_filter = 'da_hood';
+// let stars_filter = 'galactic';
 let prev_stars_filter = ''; // Set to empty to force reload @ reload_all_stars() call
+
+let tour_active = false;
+let tour_speed = 0;
+let tour_target_arrived = false;
+let tour_time_at_target = 0;
+let tour_prev_update = 0;
+let tour_orbit_radius = 10; //ly
+let tour_targets = [
+    [ 62, 130,   50],
+    [515, 345, 1055]
+];
+
+let tour_orbit_angle;
+let tour_orbit_dec = 0;
+let tour_orbit_start_x;
+let tour_orbit_start_y;
+let tour_orbit_start_z;
+let tour_orbit_insertion_distance;
+let tour_orbit_insertion_speed;
+let tour_orbit_target;
+let tour_started = false;
+let tour_stops = [];
+let tour_target_index = 0;
+let tour_busy = false;
+let tour_object_panning = true;
 
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
@@ -154,6 +181,7 @@ const direction = new THREE.Vector3();
 const vertex = new THREE.Vector3();
 const camera_vector = new THREE.Vector3();
 const color = new THREE.Color();
+let initial_scene_reloaded = false;
 
 
 const sprite = new THREE.TextureLoader().load( 'three.js/textures/sprites/disc.png' );
@@ -521,7 +549,7 @@ function init() {
         // console.log( 'DEBUG5: ', Date())
         // console.log('DEBUG51 loading lock', loading_lock)
 
-        if (! loading_lock) load_next_sky_element();
+        if (! loading_lock && initial_scene_reloaded) load_next_sky_element();
     }, 2000);
 
     const gui = new GUI();
@@ -579,6 +607,7 @@ function init() {
 
     instructions.addEventListener( 'click', function () {
         controls.lock();
+        tour_active = false;
     } );
 
     // controls.lock(); // lock the mouse to viewing angle
@@ -591,6 +620,7 @@ function init() {
     controls.addEventListener( 'unlock', function () {
         blocker.style.display = 'block';
         instructions.style.display = '';
+        tour_active = false;
     } );				
 
 
@@ -714,6 +744,13 @@ function init() {
                 toggle_global_sizeAttenuation()
                 break;
 
+            case 'KeyY':
+                tour_active = ! tour_active
+                // if (tour_active) controls.unlock();
+                console.log(tour_active)
+                // tour_update( camera);
+                break;
+
             case 'Space':
                 warp_enabled = false;
                 break;
@@ -780,6 +817,7 @@ function reload_all_stars() {
 
     // rendered_sky_elements = []
     prev_stars_filter = stars_filter;
+    initial_scene_reloaded = true;
 }
 
 function load_next_sky_element() {
@@ -830,6 +868,112 @@ function load_available_sky_elements() {
     }
 }
 
+function tour_update( camera) {
+    // now.getTime();
+    // requestAnimationFrame( tour_update( c2) );
+    // var right_now = performance.now()
+
+    console.log('ALERT1')
+
+    var easing;
+    if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
+        tour_started = true;
+        tour_busy = true;
+        var t = tour_targets[ tour_target_index];
+        if (tour_stops.length == 0) {
+            easing = TWEEN.Easing.Circular.InOut;
+
+            tour_stops = [
+                [t[0] - tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
+                [t[0] + tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
+                [t[0] + tour_orbit_radius, t[1] + tour_orbit_radius, t[2]  - tour_orbit_radius],
+                [t[0] + tour_orbit_radius, t[1] + tour_orbit_radius, t[2]  + tour_orbit_radius],
+                [t[0] - tour_orbit_radius, t[1] + tour_orbit_radius, t[2]  + tour_orbit_radius],
+                [t[0] - tour_orbit_radius, t[1] + tour_orbit_radius, t[2]  - tour_orbit_radius],
+                [t[0] - tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
+            ]
+
+            // Pan camera to new object smoothly
+            tour_object_panning = true
+            perspectiveCamera.getWorldDirection( camera_vector );
+            var angle_from = { 
+                x: camera.position.x + camera_vector.x * 1000, 
+                y: camera.position.y + camera_vector.y * 1000, 
+                z: camera.position.z + camera_vector.z * 1000} 
+
+            var angle_to = { x : t[0], y : t[1], z : t[2] };
+
+            var tween = new TWEEN.Tween(angle_from)
+            .to( angle_to, 2000)
+            .easing( TWEEN.Easing.Cubic.InOut)
+            // .easing( TWEEN.Easing.Linear.None)
+            .onUpdate( function () {
+                // console.log( 'ALERT4', camera.position.x, from.x)
+                // camera.position.x = this.x;
+                // camera.position.set( from.x, from.y, from.z);
+                camera.lookAt( angle_from.x, angle_from.y, angle_from.z);
+            })
+            .onComplete( function () {
+                // camera.lookAt( t[0], t[1], t[2]);
+                // tour_busy = false
+                tour_object_panning = false;
+            })
+            .start();
+
+        } else {
+            // easing = TWEEN.Easing.Linear.None;
+            easing = TWEEN.Easing.Sinusoidal.InOut
+
+        }
+        
+        var from = { x: camera.position.x, y: camera.position.y, z: camera.position.z } 
+
+        var ts = tour_stops.shift();
+        var to = { x : ts[0], y : ts[1], z : ts[2] };
+        console.log('ALERT2', tour_target_index, ts)
+        
+        // start the tween for the camera position
+        var tween = new TWEEN.Tween(from)
+            .to( to, 5000)
+            // .easing( TWEEN.Easing.Cubic.InOut)
+            .easing( easing)            
+            .onUpdate( function () {
+                // console.log( 'ALERT4', camera.position.x, from.x)
+                // camera.position.x = this.x;
+                camera.position.set( from.x, from.y, from.z);
+                if (!tour_object_panning)
+                    camera.lookAt( t[0], t[1], t[2]);
+            })
+            .onComplete( function () {
+                camera.lookAt( t[0], t[1], t[2]);
+                tour_busy = false
+            })
+            .start();
+
+
+
+
+
+        // start the tween for the camera viewing angle
+        // TODO
+
+        // tour_index += 1;
+        if (tour_stops.length == 0) {
+            // Move to next object in tour_targets
+            tour_target_index += 1;
+            if (tour_target_index == tour_targets.length) {
+                // Make tour ready for reuse:
+                tour_active = false;
+                tour_target_index = 0;
+            }
+            tour_busy = false;
+            // tour_index = 0; // Will create next tour_stops[] for next tour_targets item.
+        }
+    }
+    return 0
+
+
+}
 
 function onWindowResize() {
 
@@ -858,6 +1002,15 @@ function animate() {
     camera = perspectiveCamera;
     
     perspectiveCamera.getWorldDirection( camera_vector );
+
+    if (tour_active && !tour_busy) {
+        tour_update( camera);
+    }
+    if (tour_busy) {
+        TWEEN.update();
+    }
+
+
     stats.update();
     // if ( controls.isLocked === true ) {
 
@@ -954,6 +1107,7 @@ function animate() {
     // }
 
     prevTime = time;
+
 
     // console.log('render now')
     renderer.render( scene, camera );
