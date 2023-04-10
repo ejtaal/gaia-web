@@ -4,7 +4,24 @@ Scripts to process GAIA DR3+ data and convert it into a Three.js visualization f
 
 A word only conveys a milli-picture, so here is a screenshot of work in progress, showing a side view of the Hyades cluster with Sol at the axes origin:
 
-![Gaia Web @ Hyades open cluster](GAIA-Web_3D_Starfield_v0.1.png)
+![Gaia Web @ Hyades open cluster](GAIA-Web_3D_Starfield_v0.2.png)
+
+A video can be found here:
+
+<iframe
+    width="640"
+    height="480"
+    src="https://www.youtube.com/embed/yiTVA2BYB5I"
+    frameborder="0"
+    allow="autoplay; encrypted-media"
+    allowfullscreen
+>
+</iframe>
+
+The video shows off the "tour" feature, where the camera visits some open clusters and flys around them. (Yes, annotations and smoother orbits are already on TODO list ;) )
+
+The orange stripes are there because currently I currently only have about 10% of all Gaia data files, chosen at random. Because the Milky Way is overrepresented according to the HEALPix division of the data (See https://www.cosmos.esa.int/web/gaia-users/archive/extract-data and this lovely picture: https://www.cosmos.esa.int/documents/3414525/8760265/GaiaDR3_partitions_galactic.png/a2852722-bd04-d86c-ffc4-ed877b22fc93?t=1667563775853), this will result in "streams" of stars appearing to eminate from the origin/Sol as long as a full data
+download hasn't been done yet.
 
 One could say a picture only conveys a mill-VR scene, so hopefully I can host a semi-finished version somewhere that can handle some data usage.
 
@@ -33,8 +50,12 @@ Tech details of how data is extracted/stored/processed:
   - Globular clusters (if present in data?)
   - Famous constellations / star systems (binaries etc)
   - known exoplanet hosts
+  - Use Gaia Sky data for annotations?
+  - Make stars glow
+  - Add nebulae / dust clouds
+  - Implement waypoint tour
 - Allow sharing of location / camera angle via url, e.g. http://site/gwsf#12,45,56@0.5,0.5,0.5 (would need to include selected dataset and sizeAttenuation setting.)
-- Separate dataset for Gaia galactic candidates data set, using red-shift to calculate 3D position.
+- Separate viewer and dataset for Gaia galactic candidates data set, using red-shift to calculate 3D position. Other datasets may have additional/more/better data too (SLOAN?).
 
 # Credits
 
