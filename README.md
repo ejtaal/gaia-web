@@ -8,7 +8,8 @@ A word only conveys a milli-picture, so here is a screenshot of work in progress
 
 A video can be found here:
 
-<iframe
+[![IMAGE_ALT](https://img.youtube.com/vi/yiTVA2BYB5I/0.jpg)](https://www.youtube.com/watch?v=yiTVA2BYB5I)
+<!-- <iframe
     width="640"
     height="480"
     src="https://www.youtube.com/embed/yiTVA2BYB5I"
@@ -16,7 +17,7 @@ A video can be found here:
     allow="autoplay; encrypted-media"
     allowfullscreen
 >
-</iframe>
+</iframe> -->
 
 The video shows off the "tour" feature, where the camera visits some open clusters and flys around them. (Yes, annotations and smoother orbits are already on TODO list ;) )
 
