@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 # Requirements:
-# Pandas
-
-# from quantics_include import *
+# pip install pandas alive_progress
 
 import argparse
 # import copy
@@ -152,7 +150,7 @@ df['phot_g_mean_mag'].fillna( 10, inplace=True)
 save_db_stars = df[ columns_to_save_in_sqlite]
 # save_db_stars = filtered_stars[ [ 'x', 'y', 'z', 'color', 'abs_magnitude']]
 # print( filtered_stars)
-print( save_db_stars)
+# print( save_db_stars)
 
 filtered_num = len( save_db_stars)
 print( f"[+] Writing {filtered_num} filtered stars to {sqlite_db} ...")

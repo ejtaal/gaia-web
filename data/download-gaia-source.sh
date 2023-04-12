@@ -69,6 +69,35 @@ crud_js_from_sqlite() {
 
 }
 
+check_sqlite_db() {
+    local sqlite_db="$1"
+    local min_rows="$2"
+
+    if [ -f "$sqlite_db" ]; then
+        hm + "SQlite db file $sqlite_db found, checking..."
+        if [ ! -s "$sqlite_db" ]; then
+            hm ! "SQlite db file $sqlite_db seems empty, deleting ..."
+            rm -vf "$sqlite_db"
+        else
+            sqlite3 "$sqlite_db" 'select count(*) from gaia_source_filtered'
+            row_count="$(sqlite3 "$sqlite_db" 'select count(*) from gaia_source_filtered' | grep -oP '^\d+')"
+            if [ -z "$row_count" -o "0$row_count" -lt "$min_rows" ]; then
+                return 1
+            else
+                # crud_js_from_sqlite "$sqlite_db" "$js_file"
+                # if [ -f "$filename" ]; then
+                #     hm + "Deleting source file: $filename"
+                #     rm -vf "$filename"
+                # fi
+                return 0
+            fi
+        fi
+    fi
+    
+    return 1
+
+}
+
 SOURCE=http://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/
 
 MAX_CACHE_AGE=$((999*23*60))
@@ -101,27 +130,17 @@ sort -rn Gaia_element_areas.txt \
     # sqlite_db="$(dirname $filename)/$(basename $filename .csv.gz).sqlite"
     # js_file="$(dirname $filename)/$(basename $filename .csv.gz).js"
 
+    # Check if at least 100k lines are present
     if [ -f "$sqlite_db" ]; then
-        hm + "SQlite db file $sqlite_db found, checking..."
-        if [ ! -s "$sqlite_db" ]; then
-            hm ! "SQlite db file $sqlite_db seems empty, deleting ..."
-            rm -vf "$sqlite_db"
+        if check_sqlite_db "$sqlite_db" 100000; then
+            hm + "Got row_count > 100000, seems in order."
+            continue
         else
-            row_count="$(sqlite3 "$sqlite_db" 'select count(*) from gaia_source_filtered' | grep -oP '^\d+')"
-            if [ -z "$row_count" -o "0$row_count" -lt 50000 ]; then
-                hm - "Got row_count: [$row_count], please investigate"
-                exit 3
-            else
-                hm + "Got row_count: [$row_count], seems in order."
-                # crud_js_from_sqlite "$sqlite_db" "$js_file"
-                # if [ -f "$filename" ]; then
-                #     hm + "Deleting source file: $filename"
-                #     rm -vf "$filename"
-                # fi
-                continue
-            fi
+            hm - "Got less than 100000 rows, please investigate"
+            exit 3
         fi
     fi
+
     # hm \* "Sleeping $SLEEPs..."
     # sleep $SLEEP
     # continue
@@ -141,8 +160,13 @@ sort -rn Gaia_element_areas.txt \
         if [ "$GZIP_OK" = y -a "$MD5_OK" = y ]; then
             hm + "Processing file"
             ./gaia-process-csv.py "$filename"
-            # crud_js_from_sqlite "$sqlite_db" "$js_file"
-            # exit 1
+            if check_sqlite_db "$sqlite_db" 100000; then
+                hm + "Got row_count > 100000, seems in order."
+                rm -vf "$filename"
+            else
+                hm - "Got less than 100000 rows, please investigate"
+                exit 3
+            fi
         else
             hm ! "Deleting file, redownloading next time."
             rm -f "$filename"
@@ -158,7 +182,7 @@ sort -rn Gaia_element_areas.txt \
         ./gaia-process-csv.py "$filename"
         # crud_js_from_sqlite "$sqlite_db" "$js_file"
         # csv.gz file should be able to be deleted now
-        # rm -f "$filename"
+        rm -vf "$filename"
         if [ -n "$MAX_DOWNLOAD" -a "$DOWNLOADED" -ge "$MAX_DOWNLOAD" ]; then
             hm - "Downloaded the maximum of $MAX_DOWNLOAD files"
             exit 0
@@ -169,6 +193,6 @@ sort -rn Gaia_element_areas.txt \
 
     fi
     hm - "Sleeping ${SLEEP}s..."
-    exit 7
+    # exit 7
     sleep $SLEEP
 done
