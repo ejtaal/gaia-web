@@ -92,8 +92,8 @@ csvStringIO = StringIO( csvString)
 # csvStringIO = StringIO( lines)
 
 print("[+] Converting csvstring into Pandas dataframe ...")
-# all_stars = pd.read_csv( csvStringIO, sep=",", usecols=columns_to_keep )
-all_stars = pd.read_csv( csvStringIO, sep=",")
+all_stars = pd.read_csv( csvStringIO, sep=",", usecols=columns_to_keep )
+# all_stars = pd.read_csv( csvStringIO, sep=",")
 
 # filtered_stars = df[ (df['parallax'] > 0) & (df['parallax_over_error'] < 1)]
 # filtered_stars = all_stars[ ( all_stars['parallax'] > 0)]
