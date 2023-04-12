@@ -5,16 +5,7 @@
 DOWNLOADED=0
 MAX_DOWNLOAD="$1"
 
-JS_WHERE_CLAUSE="where parallax / parallax_error > 3"
-
-preview_file() {
-    # Show file a la print( pandas.dataframe)
-    file="$1"
-    ls -lh "$file"
-    head -3 "$file" | grep .
-    echo ...
-    tail -3 "$file" | grep .
-}
+JS_WHERE_CLAUSE="where parallax / parallax_error > 5"
 
 JS_INDEX="gaia-web-sky-elements.js"
 update_js_file_index() {
@@ -49,6 +40,7 @@ crud_js_from_sqlite() {
 
     if [ "$db_count" = $((line_count-2)) ]; then
         hm + "JS file $js_out exists and corresponds with DB: $db_count lines."
+        total_parsed_ok=$((total_parsed_ok+1))
     else
         hm - "JS file $js_out doesn't exist, or invalid line count. Re-generating ..."
         #  Generate the file:
@@ -92,15 +84,22 @@ count=0
 count_total="$(fgrep -c GaiaSource_ MD5SUM.txt)"
 
 # fgrep GaiaSource_ MD5SUM.txt \
-{   ls -1 GaiaSource_*csv.gz;
-    grep -oP GaiaSource_.* MD5SUM.txt | shuf; } \
-| while read filename; do
+
+
+# Download in order of angular size
+
+sort -rn Gaia_element_areas.txt \
+| grep -P 'GaiaSource_.*' \
+| while read area element; do
+    filename="${element}.csv.gz"
+    # area="$(grep "$element" Gaia_element_areas.txt | cut -f 1 -d' ')"
     md5_sum="$(grep "$filename" MD5SUM.txt | cut -f 1 -d' ')"
     count=$((count+1))
-    hm \* "-> $filename $count/$count_total  ($md5_sum)"
+    hm \* "-> $filename $count/$count_total (area: $area ~deg^2) (md5: $md5_sum)"
 
-    sqlite_db="$(dirname $filename)/$(basename $filename .csv.gz).sqlite"
-    js_file="$(dirname $filename)/$(basename $filename .csv.gz).js"
+    sqlite_db="source/${element}.sqlite"
+    # sqlite_db="$(dirname $filename)/$(basename $filename .csv.gz).sqlite"
+    # js_file="$(dirname $filename)/$(basename $filename .csv.gz).js"
 
     if [ -f "$sqlite_db" ]; then
         hm + "SQlite db file $sqlite_db found, checking..."
@@ -109,16 +108,16 @@ count_total="$(fgrep -c GaiaSource_ MD5SUM.txt)"
             rm -vf "$sqlite_db"
         else
             row_count="$(sqlite3 "$sqlite_db" 'select count(*) from gaia_source_filtered' | grep -oP '^\d+')"
-            if [ -z "$row_count" -o "0$row_count" -lt 100000 ]; then
+            if [ -z "$row_count" -o "0$row_count" -lt 50000 ]; then
                 hm - "Got row_count: [$row_count], please investigate"
                 exit 3
             else
                 hm + "Got row_count: [$row_count], seems in order."
-                crud_js_from_sqlite "$sqlite_db" "$js_file"
-                if [ -f "$filename" ]; then
-                    hm + "Deleting source file: $filename"
-                    rm -vf "$filename"
-                fi
+                # crud_js_from_sqlite "$sqlite_db" "$js_file"
+                # if [ -f "$filename" ]; then
+                #     hm + "Deleting source file: $filename"
+                #     rm -vf "$filename"
+                # fi
                 continue
             fi
         fi
@@ -142,7 +141,7 @@ count_total="$(fgrep -c GaiaSource_ MD5SUM.txt)"
         if [ "$GZIP_OK" = y -a "$MD5_OK" = y ]; then
             hm + "Processing file"
             ./gaia-process-csv.py "$filename"
-            crud_js_from_sqlite "$sqlite_db" "$js_file"
+            # crud_js_from_sqlite "$sqlite_db" "$js_file"
             # exit 1
         else
             hm ! "Deleting file, redownloading next time."
@@ -153,20 +152,23 @@ count_total="$(fgrep -c GaiaSource_ MD5SUM.txt)"
 
     if [ ! -f "$filename" ]; then
         # Only download if not fully imported ok already
-        download_if_not_older "$filename" "$MAX_CACHE_AGE" "${BASE_URL}${filename}"
+        # WGET_OPTIONS="--limit-rate=1M"
+        download_if_not_older "$filename" "$MAX_CACHE_AGE" "${BASE_URL}${filename}" "$WGET_OPTIONS"
         DOWNLOADED=$((DOWNLOADED+1))
         ./gaia-process-csv.py "$filename"
-        crud_js_from_sqlite "$sqlite_db" "$js_file"
+        # crud_js_from_sqlite "$sqlite_db" "$js_file"
         # csv.gz file should be able to be deleted now
-        rm -f "$filename"
+        # rm -f "$filename"
         if [ -n "$MAX_DOWNLOAD" -a "$DOWNLOADED" -ge "$MAX_DOWNLOAD" ]; then
             hm - "Downloaded the maximum of $MAX_DOWNLOAD files"
             exit 0
         else
             hm + "Downloaded $DOWNLOADED files so far."
+            exit 5
         fi
 
     fi
     hm - "Sleeping ${SLEEP}s..."
+    exit 7
     sleep $SLEEP
 done
