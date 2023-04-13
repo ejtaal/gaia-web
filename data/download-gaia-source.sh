@@ -80,7 +80,7 @@ check_sqlite_db() {
             rm -vf "$sqlite_db"
         else
             sqlite3 "$sqlite_db" 'select count(*) from gaia_source_filtered'
-            row_count="$(sqlite3 "$sqlite_db" 'select count(*) from gaia_source_filtered' | grep -oP '^\d+')"
+            row_count="$(sqlite3 "$sqlite_db" 'select count(1) from gaia_source_filtered' | grep -oP '^\d+')"
             if [ -z "$row_count" -o "0$row_count" -lt "$min_rows" ]; then
                 return 1
             else
@@ -112,6 +112,31 @@ download_if_not_older "MD5SUM.txt" "$MAX_CACHE_AGE" "$MD5_URL"
 count=0
 count_total="$(fgrep -c GaiaSource_ MD5SUM.txt)"
 
+
+checkfile_cmd_hash() {
+	local filename="$1"
+	local test_cmd="$2"
+	local file_hash="$3"
+
+	# echo p | md5sum | wc -c
+	case ${#file_hash} in
+		32) hash_cmd=md5sum;;
+		40) hash_cmd=sha1sum;;
+		64) hash_cmd=sha256sum;;
+		128) hash_cmd=sha512sum;;
+		*) hm ! 'Unknown CRC hash specifief'
+	esac
+
+	ALL_OK_RT_CODE=1
+	if [ -f "$filename" ] && $test_cmd "$filename"; then
+		# Final check
+    if [ "$($hash_cmd "$filename" | cut -f 1 -d ' ')" = "$file_hash" ]; then
+			ALL_OK_RT_CODE=0
+		fi
+	fi
+	return $ALL_OK_RT_CODE
+}
+
 # fgrep GaiaSource_ MD5SUM.txt \
 
 
@@ -132,7 +157,7 @@ sort -rn Gaia_element_areas.txt \
 
     # Check if at least 100k lines are present
     if [ -f "$sqlite_db" ]; then
-        if check_sqlite_db "$sqlite_db" 100000; then
+        if check_sqlite_db "$sqlite_db" 50000; then
             hm + "Got row_count > 100000, seems in order."
             continue
         else
@@ -147,22 +172,24 @@ sort -rn Gaia_element_areas.txt \
     NEED_REDOWNLOAD=n
     if [ -f "$filename" ]; then
         hm + "   $filename found, checking ..."
-        GZIP_OK=n
-        MD5_OK=y
-        if gzip -t "$filename"; then
-            hm + gzip checks out ok
-            GZIP_OK=y
-        fi
-        if [ "$(md5sum "$filename" | cut -f 1 -d ' ')" = "$md5_sum" ]; then
-            hm + md5sum checks out ok
-            MD5_OK=y
-        fi
-        if [ "$GZIP_OK" = y -a "$MD5_OK" = y ]; then
+				if checkfile_cmd_hash "$filename" 'gzip -t' "$md5_sum"; then
+###         GZIP_OK=n
+###         MD5_OK=y
+###         if gzip -t "$filename"; then
+###             hm + gzip checks out ok
+###             GZIP_OK=y
+###         fi
+###         if [ "$(md5sum "$filename" | cut -f 1 -d ' ')" = "$md5_sum" ]; then
+###             hm + md5sum checks out ok
+###             MD5_OK=y
+###         fi
+###         if [ "$GZIP_OK" = y -a "$MD5_OK" = y ]; then
             hm + "Processing file"
             ./gaia-process-csv.py "$filename"
-            if check_sqlite_db "$sqlite_db" 100000; then
+            if check_sqlite_db "$sqlite_db" 50000; then
                 hm + "Got row_count > 100000, seems in order."
                 rm -vf "$filename"
+								continue
             else
                 hm - "Got less than 100000 rows, please investigate"
                 exit 3
@@ -176,19 +203,32 @@ sort -rn Gaia_element_areas.txt \
 
     if [ ! -f "$filename" ]; then
         # Only download if not fully imported ok already
-        # WGET_OPTIONS="--limit-rate=1M"
+        COMMON_WGET_OPTIONS="-q  --show-progress --progress=bar:force"
+				HOUR=$(date +%H)
+				if date +%H | grep -qP '^(23|0?[0-7])$'; then
+					hm + "Using quiet hour speed: 10M/s"
+					WGET_OPTIONS="$COMMON_WGET_OPTIONS --limit-rate=10M"
+				else
+					hm - "Using busy hour speed: 500k/s"
+					WGET_OPTIONS="$COMMON_WGET_OPTIONS --limit-rate=500k"
+				fi
         download_if_not_older "$filename" "$MAX_CACHE_AGE" "${BASE_URL}${filename}" "$WGET_OPTIONS"
         DOWNLOADED=$((DOWNLOADED+1))
-        ./gaia-process-csv.py "$filename"
-        # crud_js_from_sqlite "$sqlite_db" "$js_file"
-        # csv.gz file should be able to be deleted now
-        rm -vf "$filename"
+
+				if checkfile_cmd_hash "$filename" 'gzip -t' "$md5_sum"; then
+					hm + "File gzip and md5 look ok"
+				else
+					hm - "File integrity failed. Try again next time."
+        	rm -vf "$filename"
+					continue
+				fi
+        ./gaia-process-csv.py "$filename" && \
+        	rm -vf "$filename"
         if [ -n "$MAX_DOWNLOAD" -a "$DOWNLOADED" -ge "$MAX_DOWNLOAD" ]; then
             hm - "Downloaded the maximum of $MAX_DOWNLOAD files"
             exit 0
         else
             hm + "Downloaded $DOWNLOADED files so far."
-            exit 5
         fi
 
     fi

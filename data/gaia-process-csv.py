@@ -62,38 +62,39 @@ source_dir = "./source/"
 sqlite_db = source_dir + csv_file.replace( '.csv.gz', '') + '.sqlite'
 # jsfile_out = csv_file.replace( '.csv.gz', '') + '.js'
 
-print("[+] Unzipping file & stripping comments ...")
-with gzip.open( csv_file, mode="rt") as f:
-    for line in alive_it( f):
-        if line.startswith('#'):
-            continue
-        if line.startswith('solution_id'):
-            if header_seen:
-                continue
-            header_seen = True
-        # print('got line', line)
-        # csvstring += line
-        lines.append( line)
-    # file_content = f.read()
-
-# print( csvstring)
-# print( lines[:5])
-# print( ''.join(lines[:5]))
-
-# exit(0)
-# csvStringIO = StringIO( csvstring)
-# csvStringIO = StringIO( '\n'.join( lines))
-csvString = ''.join( lines)
-print( 'lines read: ', len( lines))
-# print( 'len csvString: ', len( csvString))
-
-print("[+] Generating StringIO object from lines read ...")
-csvStringIO = StringIO( csvString)
-# csvStringIO = StringIO( lines)
-
-print("[+] Converting csvstring into Pandas dataframe ...")
+### print("[+] Unzipping file & stripping comments ...")
+### with gzip.open( csv_file, mode="rt") as f:
+###     for line in alive_it( f):
+###         if line.startswith('#'):
+###             continue
+###         if line.startswith('solution_id'):
+###             if header_seen:
+###                 continue
+###             header_seen = True
+###         # print('got line', line)
+###         # csvstring += line
+###         lines.append( line)
+###     # file_content = f.read()
+### 
+### # print( csvstring)
+### # print( lines[:5])
+### # print( ''.join(lines[:5]))
+### 
+### # exit(0)
+### # csvStringIO = StringIO( csvstring)
+### # csvStringIO = StringIO( '\n'.join( lines))
+### csvString = ''.join( lines)
+### print( 'lines read: ', len( lines))
+### # print( 'len csvString: ', len( csvString))
+### 
+### print("[+] Generating StringIO object from lines read ...")
+### csvStringIO = StringIO( csvString)
+### # csvStringIO = StringIO( lines)
+### 
+### print("[+] Converting csvstring into Pandas dataframe ...")
 # all_stars = pd.read_csv( csvStringIO, sep=",", usecols=columns_to_keep )
-all_stars = pd.read_csv( csvStringIO, sep=",")
+# read_csv() now infer's compression too
+all_stars = pd.read_csv( csv_file, sep=",", comment='#', usecols=columns_to_keep)
 
 # filtered_stars = df[ (df['parallax'] > 0) & (df['parallax_over_error'] < 1)]
 # filtered_stars = all_stars[ ( all_stars['parallax'] > 0)]
