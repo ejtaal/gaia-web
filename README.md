@@ -37,7 +37,7 @@ Tech details of how data is extracted/stored/processed:
 - stars with suitable parallax values are stored locally in sqlite
 - only those with high confidence parallax are stored in a .js
 - the starfield html page loads all .js files
-- additional filters are applied while loaded as not all data can be stored
+- additional filters are applied while loaded as not all data can be stored. This way of filtering data will be deprecated once suitable datasets have been generated once all data can be processed.
 - ...
 
 # TODO:
@@ -55,6 +55,9 @@ Tech details of how data is extracted/stored/processed:
   - Make stars glow
   - Add nebulae / dust clouds
   - Implement waypoint tour
+    - Done, but need some way of interacting with it / sharing / adding items / tagging tour stops etc...
+  - Add hud view for camera viewing angle and speed vector
+  - some sort of galactic or RA/dec minimap HUD view?
 - Allow sharing of location / camera angle via url, e.g. http://site/gwsf#12,45,56@0.5,0.5,0.5 (would need to include selected dataset and sizeAttenuation setting.)
 - Separate viewer and dataset for Gaia galactic candidates data set, using red-shift to calculate 3D position. Other datasets may have additional/more/better data too (SLOAN?).
 
