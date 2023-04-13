@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>GAIA-Web 3D Starfield v0.1</title>
+		<title>GAIA-Web 3D Starfield v0.2</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="three.js/main.css">
@@ -118,7 +118,42 @@ Please be patient as star data is loaded in the background.
 				}
 			}
 		</script>
+		<script type="x-shader/x-vertex" id="vertexshader">
 
+			attribute float size;
+			attribute vec3 customColor;
+
+			varying vec3 vColor;
+
+			void main() {
+
+				vColor = customColor;
+
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+
+				gl_PointSize = size * ( 300.0 / -mvPosition.z );
+
+				gl_Position = projectionMatrix * mvPosition;
+
+			}
+
+		</script>
+
+		<script type="x-shader/x-fragment" id="fragmentshader">
+
+			uniform vec3 color;
+			uniform sampler2D pointTexture;
+
+			varying vec3 vColor;
+
+			void main() {
+
+				gl_FragColor = vec4( color * vColor, 1.0 );
+				gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+
+			}
+
+		</script>
 		<!-- The main index of all sky patch elements, which basically based on this file:
             http://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/_MD5SUM.txt
          -->
@@ -155,11 +190,23 @@ let tour_speed = 0;
 let tour_target_arrived = false;
 let tour_time_at_target = 0;
 let tour_prev_update = 0;
-let tour_orbit_radius = 10; //ly
+let tour_orbit_radius = 20; //ly
 let tour_targets = [
-    [ 62, 130,   50],
-    [515, 345, 1055]
-];
+    [  62, 130,   50],
+    [ 489, 730,  553],
+    [ -366, 434, 203],
+    [ 515, 345, 1055],
+    [ 907, 779, 1102],
+    [ 125, 1219, -130],
+    [ 144.4, 1113.5, 53.8 ],
+    [ -266.2, 1239.2,1100.6 ],
+    [ -2176.2, -4843.8, -2653.4 ],
+    [ 3618.0, 2559.1, 6839.6 ], // Maybe globular cluster?
+    // [ ],
+    // [ ],
+    // [ ],
+    // [ ],
+    ];
 
 let tour_orbit_angle;
 let tour_orbit_dec = 0;
@@ -378,8 +425,43 @@ function add_stars_to_scene( scene, star_coords) {
         // console.log(size, bucket);
     
         stars_geometry = new THREE.BufferGeometry();
-        stars_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( bucket['positions'], 3 ) );
-        stars_geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( bucket['colors'], 3 ) );
+        // stars_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( bucket['positions'], 3 ) );
+        // stars_geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( bucket['colors'], 3 ) );
+        var amount = bucket['positions'].length
+        const positions = new Float32Array( amount * 3 );
+        const colors = new Float32Array( amount * 3 );
+        const color = new THREE.Color( 0xff00ff );
+        for (var i = 0; i < amount; i++) {
+            positions[i] = bucket['positions'][i];
+            // positions[i*3+1] = bucket['positions'][i][1];
+            // positions[i*3+2] = bucket['positions'][i][2];
+            // console.log( 'ALERT 5', amount, bucket['positions'][i], positions[i*3], bucket['positions'][i][0])
+            // color.toArray( colors, i * 3 );
+            colors[i] = bucket['colors'][i]
+        }
+        
+        stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+        stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
+        // var sizes = Array( bucket['positions'].length).fill( size)
+        const sizes = new Float32Array( amount);
+        for (var i = 0; i < amount; i++) sizes[i] = size * 3;
+        stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
+
+        const point_material = new THREE.ShaderMaterial( {
+            uniforms: {
+                color: { value: new THREE.Color( 0xffffff ) },
+                pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+            },
+            vertexShader: document.getElementById( 'vertexshader' ).textContent,
+            fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+
+            blending: THREE.AdditiveBlending,
+            depthTest: false,
+            transparent: true,
+            vertexColors : true
+            // flatShading: true
+
+        } );
 
         /*
         Since custom properties apparently don't stick, we instead 
@@ -387,15 +469,28 @@ function add_stars_to_scene( scene, star_coords) {
         increase/descrease size on the fly when toggling 
         the .sizeAttenuation property.
         */
-        const point_material = new THREE.PointsMaterial( { 
-            size: size * global_sizeAttenuation_multiplier, 
-            name: size,
-            sizeAttenuation: global_sizeAttenuation, map: sprite, 
-            alphaTest: 0.5, transparent: false, vertexColors: true 
-        } );
+        // const point_material = new THREE.PointsMaterial( { 
+        //     size: size * global_sizeAttenuation_multiplier, 
+        //     name: size,
+        //     sizeAttenuation: global_sizeAttenuation, map: sprite, 
+        //     alphaTest: 0.5, transparent: false, vertexColors: true 
+        // } );
 
         var points = new THREE.Points( stars_geometry, point_material );
         scene.add( points );
+
+        // console.log( bucket)
+        // for (var l = 0; l < bucket['positions'].length; l++) {
+        //     const light = new THREE.PointLight( bucket['colors'][l], size * 3, size * 100);
+		// 			// light.color.setHSL( h, s, l );
+		// 			light.position.set( 
+        //                 bucket['positions'][l][0],
+        //                 bucket['positions'][l][1],
+        //                 bucket['positions'][l][2]
+        //             );
+		// 			scene.add( light );
+        // }
+
         total_added += bucket['positions'].length;
         // console.log('DEBUG1 Added size/# new stars: ', size, bucket['positions'].length)
     }
@@ -550,6 +645,20 @@ function init() {
         // console.log('DEBUG51 loading lock', loading_lock)
 
         if (! loading_lock && initial_scene_reloaded) load_next_sky_element();
+    }, 2000);
+
+    const interval3 = setInterval(function() {
+        // method to be executed;
+
+        var hash_value_here = 
+            + camera_vector.x.toFixed(1) + ',' 
+            + camera_vector.y.toFixed(1) + ',' 
+            + camera_vector.z.toFixed(1) + '_'
+            + camera.position.x.toFixed(1) + ','
+            + camera.position.y.toFixed(1) + ',' 
+            + camera.position.z.toFixed(1) 
+        location.replace("#" + hash_value_here);
+
     }, 2000);
 
     const gui = new GUI();
@@ -810,7 +919,11 @@ function reload_all_stars() {
     all_stars = {}
 
     // Add Sol
-    add_stars_to_scene( scene, [[ 0, 0, 0, 1, -10]])
+    add_stars_to_scene( scene, [
+    [ 0, 0, 0, 1, -10],
+    // [ 5, 5, 5, 0.5, -10],
+    // [ 10, 20, 10, 2, -10]
+    ])
     
     rendered_sky_elements = []
     console.log('Full data reload should occur automatically now...')
@@ -873,7 +986,7 @@ function tour_update( camera) {
     // requestAnimationFrame( tour_update( c2) );
     // var right_now = performance.now()
 
-    console.log('ALERT1')
+    // console.log('tour busy', tour_busy)
 
     var easing;
     if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
@@ -903,10 +1016,12 @@ function tour_update( camera) {
 
             var angle_to = { x : t[0], y : t[1], z : t[2] };
 
+            console.log('ALERT1: start panning')
             var tween = new TWEEN.Tween(angle_from)
             .to( angle_to, 2000)
-            .easing( TWEEN.Easing.Cubic.InOut)
-            // .easing( TWEEN.Easing.Linear.None)
+            .easing( TWEEN.Easing.Sinusoidal.InOut)
+            // .easing( TWEEN.Easing.Cubic.InOut)
+            // .easing( TWEEN.Easing.Linear.None)            
             .onUpdate( function () {
                 // console.log( 'ALERT4', camera.position.x, from.x)
                 // camera.position.x = this.x;
@@ -930,7 +1045,7 @@ function tour_update( camera) {
 
         var ts = tour_stops.shift();
         var to = { x : ts[0], y : ts[1], z : ts[2] };
-        console.log('ALERT2', tour_target_index, ts)
+        console.log('ALERT2', tour_busy, tour_target_index, tour_stops.length, ts)
         
         // start the tween for the camera position
         var tween = new TWEEN.Tween(from)
@@ -966,7 +1081,7 @@ function tour_update( camera) {
                 tour_active = false;
                 tour_target_index = 0;
             }
-            tour_busy = false;
+            // tour_busy = false;
             // tour_index = 0; // Will create next tour_stops[] for next tour_targets item.
         }
     }
@@ -990,7 +1105,7 @@ function onWindowResize() {
 
     renderer.setSize( window.innerWidth, window.innerHeight );
 
-    controls.handleResize();
+    // controls.handleResize(); // not sure what this is/was supposed to do?
 
 }
 
@@ -1031,7 +1146,8 @@ function animate() {
         if (warp_speed > 1) warp_speed -= 0.1;
         if (warp_speed < 1) warp_speed = 1;
     }
-    delta = delta * (warp_speed ** 2)
+    delta = delta * (warp_speed ** 1.5)
+    // delta = delta * ((warp_speed/3) ** 2)
     // delta = delta * (warp_speed ** 1.5)
     // console.log( delta)
     
@@ -1072,7 +1188,7 @@ function animate() {
     // 	canJump = true;
 
     // }
-    var max_velocity = 1000;
+    var max_velocity = 300;
     if (velocity.x > max_velocity) velocity.x = max_velocity;
     if (velocity.y > max_velocity) velocity.y = max_velocity;
     if (velocity.z > max_velocity) velocity.z = max_velocity;
@@ -1150,6 +1266,8 @@ function animate() {
         + camera_vector.y.toFixed(2) + ', ' 
         + camera_vector.z.toFixed(2)
         ;
+
+
 
 }
 
