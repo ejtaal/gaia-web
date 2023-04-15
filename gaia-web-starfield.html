@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>GAIA-Web 3D Starfield v0.2</title>
+		<title>GAIA-Web 3D Starfield v0.21</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="three.js/main.css">
@@ -190,25 +190,29 @@ let tour_speed = 0;
 let tour_target_arrived = false;
 let tour_time_at_target = 0;
 let tour_prev_update = 0;
-let tour_orbit_radius = 20; //ly
+let tour_orbit_radius = 25; //ly
 let tour_targets = [
+    /*
+    */
     [  62, 130,   50],
     [ 489, 730,  553],
     [ -366, 434, 203],
-    [ 515, 345, 1055],
+    [ 515, 340, 1055],
     [ 907, 779, 1102],
     [ 125, 1219, -130],
     [ 144.4, 1113.5, 53.8 ],
     [ -266.2, 1239.2,1100.6 ],
     [ -2176.2, -4843.8, -2653.4 ],
     [ 3618.0, 2559.1, 6839.6 ], // Maybe globular cluster?
-    // [ ],
-    // [ ],
-    // [ ],
-    // [ ],
+    /*
+    [ ],
+    [ ],
+    [ ],
+    [ ],
+    */
     ];
 
-let tour_orbit_angle;
+let tour_orbit_angle = 0;
 let tour_orbit_dec = 0;
 let tour_orbit_start_x;
 let tour_orbit_start_y;
@@ -246,6 +250,7 @@ var star_max_dist = 10**5;
 var star_max_dist = 10**3;
 var all_stars = {};
 var rendered_sky_elements = [];
+var total_stars_in_scene = 0;
 
 var loading_lock = false;
 
@@ -297,7 +302,7 @@ function add_stars_to_scene( scene, star_coords) {
         
         // if (distance > 2500) continue;
         if ( stars_filter == 'da_hood')
-            if (distance > 2000) continue;
+            if ((distance > 3000) || (abs_magnitude > 5)) continue;
 
         if ( stars_filter == 'galactic')
             if ((distance > 70000) || (abs_magnitude > -3)) continue;
@@ -330,10 +335,17 @@ function add_stars_to_scene( scene, star_coords) {
         5 11
         */
 
+        /*
         // Aim to make the stars between 0.2 and 3 in size to ensure reasonable
         // spread over the absolute magitude bucket sized above
         var star_size = parseInt( 20 - (parseInt(abs_magnitude) + 10)) / 5
         if (star_size > 3) star_size = 3;
+        if (star_size < 0.2) star_size = 0.2;
+        */
+        // With the shader material it's better to make it size 0 - 10
+        // spread over the absolute magitude bucket sized above
+        var star_size = (10 - parseInt(abs_magnitude)) / 2
+        if (star_size > 10) star_size = 10;
         if (star_size < 0.2) star_size = 0.2;
 
         // initialize bucket if needed:
@@ -444,13 +456,17 @@ function add_stars_to_scene( scene, star_coords) {
         stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
         // var sizes = Array( bucket['positions'].length).fill( size)
         const sizes = new Float32Array( amount);
-        for (var i = 0; i < amount; i++) sizes[i] = size * 3;
+        // for (var i = 0; i < amount; i++) sizes[i] = size * 3;
+        for (var i = 0; i < amount; i++) sizes[i] = size;
         stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
 
         const point_material = new THREE.ShaderMaterial( {
             uniforms: {
                 color: { value: new THREE.Color( 0xffffff ) },
-                pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+                // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+                // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
+                pointTexture: { value: new THREE.TextureLoader().load( 'images/star-glare6.png' ) }
+
             },
             vertexShader: document.getElementById( 'vertexshader' ).textContent,
             fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
@@ -531,6 +547,8 @@ function loadScript (scene, sky_element, async = false, type = "text/javascript"
 				console.log("Parsed file " + num_loaded + ' of ' + total
                     + ' (' + sky_element + '): #'
                     + all_stars[sky_element].length + " stars' data loaded.");
+                
+
 
 				// add_stars_to_scene( scene, stars)
 				// console.log('DEBUG3', star_max_dist)
@@ -914,9 +932,11 @@ function reload_all_stars() {
     if ((stars_filter == 'galactic') && (global_sizeAttenuation == true))
         toggle_global_sizeAttenuation();
 
+
     // Reset scene
     scene.remove.apply(scene, scene.children);
     all_stars = {}
+    total_stars_in_scene = 0
 
     // Add Sol
     add_stars_to_scene( scene, [
@@ -971,8 +991,11 @@ function load_available_sky_elements() {
             // use way too much memory
             all_stars[ element] = 0;
             rendered_sky_elements.push( element)
-            console.log("Added " + num_added + '/' + total_stars + ' to 3D scene from element: '
-                    + element + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + ')');
+            total_stars_in_scene += num_added
+            console.log( "Added " + num_added + '/' 
+                + total_stars + ' to 3D scene from element: ' + element 
+                + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + '). '
+                + 'Total stars in scene: ' + total_stars_in_scene);
             // return 0
         } else {
             // console.log( 'Already parsed: ' + element)
@@ -989,6 +1012,7 @@ function tour_update( camera) {
     // console.log('tour busy', tour_busy)
 
     var easing;
+    var easing_time = 5000;
     if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
         tour_started = true;
         tour_busy = true;
@@ -996,6 +1020,30 @@ function tour_update( camera) {
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
 
+
+            
+            tour_stops = [
+                [t[0] - tour_orbit_radius, t[1], t[2]]
+            ]
+
+            /*
+            Calculate a nice pseudo fly around orbit. It's not so much an actual orbit
+            as it is a step-wise walk around the edges of a circle comprising pizza
+            slice triangles. Therefore, flying around stars should now start to 
+            make you feel hungry ;).
+            */
+            var orbit_step_size = 0.2;
+            var xdiff, ydiff, zdiff;
+            var cur_radius = tour_orbit_radius;
+            for (var i = orbit_step_size; i < Math.PI * 6; i += 0.2) {
+                cur_radius = tour_orbit_radius + Math.sin(i * 0.2) * 0.6 * tour_orbit_radius;
+                xdiff = t[0] - Math.cos(i) * cur_radius;
+                ydiff = t[1] + Math.sin(i * 0.4) * 0.8 * cur_radius;
+                zdiff = t[2] + Math.sin(i) * cur_radius;
+                tour_stops.push( [xdiff, ydiff, zdiff])
+            }
+            /*
+            // Go around the object along the edges of a cube. Boring and lame.
             tour_stops = [
                 [t[0] - tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
                 [t[0] + tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
@@ -1005,6 +1053,7 @@ function tour_update( camera) {
                 [t[0] - tour_orbit_radius, t[1] + tour_orbit_radius, t[2]  - tour_orbit_radius],
                 [t[0] - tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
             ]
+            */
 
             // Pan camera to new object smoothly
             tour_object_panning = true
@@ -1016,10 +1065,12 @@ function tour_update( camera) {
 
             var angle_to = { x : t[0], y : t[1], z : t[2] };
 
-            console.log('ALERT1: start panning')
+            easing = TWEEN.Easing.Linear.None;
+            // easing = TWEEN.Easing.Sinusoidal.InOut
+            // console.log('ALERT1: start panning')
             var tween = new TWEEN.Tween(angle_from)
             .to( angle_to, 2000)
-            .easing( TWEEN.Easing.Sinusoidal.InOut)
+            .easing( easing)
             // .easing( TWEEN.Easing.Cubic.InOut)
             // .easing( TWEEN.Easing.Linear.None)            
             .onUpdate( function () {
@@ -1036,20 +1087,23 @@ function tour_update( camera) {
             .start();
 
         } else {
-            // easing = TWEEN.Easing.Linear.None;
-            easing = TWEEN.Easing.Sinusoidal.InOut
+            // Go faster and linear for the semi-circular orbital pizza slices calculated above
+            easing = TWEEN.Easing.Linear.None;
+            easing_time = 500; // ms
+
+            // easing = TWEEN.Easing.Sinusoidal.InOut; // Was used for cube lookaround
 
         }
         
         var from = { x: camera.position.x, y: camera.position.y, z: camera.position.z } 
 
         var ts = tour_stops.shift();
-        var to = { x : ts[0], y : ts[1], z : ts[2] };
-        console.log('ALERT2', tour_busy, tour_target_index, tour_stops.length, ts)
+        // console.log('ALERT2', tour_busy, tour_target_index, tour_stops.length, ts)
         
         // start the tween for the camera position
+        var to = { x : ts[0], y : ts[1], z : ts[2] };
         var tween = new TWEEN.Tween(from)
-            .to( to, 5000)
+            .to( to, easing_time)
             // .easing( TWEEN.Easing.Cubic.InOut)
             .easing( easing)            
             .onUpdate( function () {
