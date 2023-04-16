@@ -169,6 +169,75 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
+// Courtesy of: https://codepen.io/hootstheowl/pen/xOQVQg
+// class CubeWebGL {
+//   constructor(props = {}) {
+//     Object.assign(this, {
+//       // set variable settings
+//       container: props.container || document.body,
+//       fps: props.fps || 30,
+//       theta: props.theta || 0.1,
+//       radius: props.radius || 600,
+//       opacity: props.opacity || 0.2,
+//       count: props.count || 150,
+//       palette: props.palette || null,
+//       // containers for ThreeJS animation
+//       then: Date.now(),
+//       camera: null,
+//       scene: null,
+//       renderer: null,
+//     });
+//     // // let's go!
+//     // this.init();
+//     // this.animate();
+//     // document.addEventListener(
+//     //   'mousedown', this.getIntersect.bind(this), false
+//     // );
+//   }
+//   getIntersect(e) {
+//     const raycaster = new THREE.Raycaster();
+//     const mouse = new THREE.Vector3();
+//     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+// 	  mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+//     // update the picking ray with the camera and mouse position	
+// 	  raycaster.setFromCamera( mouse, this.camera );	
+//     // calculate objects intersecting the picking ray
+//     const intersects = raycaster.intersectObjects( this.scene.children );
+//     console.log(intersects)
+//   }
+//   addCube() {
+//     const { palette, opacity } = this;
+//     if (Array.isArray(palette)) {
+//       const cubeColor = palette[Math.floor(
+//         Math.random() * palette.length
+//       )];
+//     }
+//     const cube = new THREE.Mesh(
+//       new THREE.BoxGeometry(2.5, 2.5, 2.5),
+//       new THREE.MeshBasicMaterial({
+//         color: Math.random() * 0x808008 + 0x808080,
+//         transparent: true,
+//         opacity,
+//       })
+//     );
+//     cube.position.x = this.generatePosition();
+//     cube.position.y = this.generatePosition();
+//     cube.position.z = this.generatePosition();
+//     cube.scale.x= cube.scale.y = cube.scale.z = Math.random() * 45;
+//     this.scene.add(cube);
+//   }
+
+
+
+
+
+
+
+let data_set = 'star_density'
+let prev_data_set = 'star_density'
+let data_set_type = 'cubes'
+let data_set_xyz_multiplier = 100
+
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
@@ -251,6 +320,7 @@ var star_max_dist = 10**3;
 var all_stars = {};
 var rendered_sky_elements = [];
 var total_stars_in_scene = 0;
+var total_cubes_in_scene = 0;
 
 var loading_lock = false;
 
@@ -260,6 +330,294 @@ var lightyear_p_parsec = 3.261563777
 
 init();
 animate();
+
+function add_nebulae_to_scene( scene, nebulae_data) {
+
+    var canvas = document.createElement("canvas");
+
+    var pic = new Image(); 
+    pic.src = 'nebulae/out.png'; 
+    pic.onload = function() {
+
+        canvas.width = pic.width;
+        canvas.height = pic.height;
+        var ctx = canvas.getContext("2d");
+
+        ctx.drawImage(pic, 0, 0);
+
+        var c = canvas.getContext('2d');
+        var p = c.getImageData(107, 107, 1, 1).data;
+        var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+        console.log( 'colors: ', p, hex)
+
+        var p = c.getImageData( 80, 80, 1, 1).data;
+        var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+        console.log( 'colors: ', p, hex)
+
+        // Transform image to cubes
+        var pixel
+        for (var y = 1; y < pic.height; y++) {
+            for (var z = 1; z < pic.width; z++) {
+                    var cube = new THREE.Mesh(
+                    new THREE.BoxGeometry( 1, 1, 1),
+                    new THREE.MeshBasicMaterial({
+                        // color: Math.random() * 0x0000FF, // + 0x000080,
+                        color: 0x0000FF,
+                        // color: 0x8888AA,
+                        transparent: true,
+                        // opacity: Math.random() * 0.1,
+                        opacity: 0.1,
+                    })
+                    );
+                    cube.position.x = 50
+                    cube.position.y = 50 + pic.height - y
+                    cube.position.z = 100 + z
+                    // cube.material.opacity = 0.3
+                    // cube.material.color = Math.random() * 0x000080 + 0x606080,
+                    // cube.material.color = new THREE.Color()
+                    cube.material.opacity = 0.3; // * (x+y+z)/30
+                    pixel = c.getImageData( z, y, 1, 1).data;
+                    // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                    cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
+                    // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+                    // console.log('cube: ', cube)
+                    scene.add(cube);
+
+                    // Add depth cubes
+                    var depth = parseInt( 0.25 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+                    var dimm_factor = 1;
+                    for (var x = -depth; x < depth; x++) {
+                        var cube = new THREE.Mesh(
+                        new THREE.BoxGeometry( 1, 1, 1),
+                        new THREE.MeshBasicMaterial({
+                            // color: Math.random() * 0x0000FF, // + 0x000080,
+                            color: 0x0000FF,
+                            // color: 0x8888AA,
+                            transparent: true,
+                            // opacity: Math.random() * 0.1,
+                            opacity: 0.1,
+                        })
+                        );
+                        cube.position.x = 50 + x
+                        cube.position.y = 50 + pic.height - y
+                        cube.position.z = 100 + z
+                        dimm_factor = (1 - Math.abs( x / depth))
+                        cube.material.opacity = 0.3 * dimm_factor
+                        // pixel = c.getImageData( z, y, 1, 1).data;
+                        // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                        cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
+                        // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+                        // console.log('cube: ', cube)
+                        scene.add(cube);
+
+                    }
+
+
+            
+            }
+        }    
+}
+    // document.getElementById("output").innerHTML = hex; 
+
+
+
+
+    // let img = new (window as any).Image();
+    // img.crossOrigin = `Anonymous`;
+
+    // img.src = "nebulae/out.png";
+    // img.onload = function () {
+    //     canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
+    //     canvas.width = img.width;
+    //     canvas.height = img.height;
+    //     let ctx: CanvasRenderingContext2D = canvas.getContext(
+    //         "2d"
+    //     ) as CanvasRenderingContext2D;
+    //     ctx.drawImage(img, 0, 0);
+
+    //     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    //     data = imgData.data;
+    //     canvas.addEventListener("mousemove", (ev) => {
+    //         //as the mouse moves around the image
+    //         let cols = canvas.width;
+    //         let { offsetX, offsetY } = ev;
+    //         //call the method to get the r,g,b,a values for current pixel
+    //         let c = extractPixelColor(cols, offsetY, offsetX);
+    //         //build a colour string for 
+    //         let colour = `rgb(${c.red}, ${c.green}, ${c.blue})`} ;
+    //         let hexCode = `#${[c.red, c.green, c.blue]
+    //             .map((x) => x.toString(16).padStart(2, "0"))
+    //             .join("")}`;
+            
+    //     });
+    // };
+
+
+}
+
+
+function add_cubes_to_scene( scene, cube_data) {
+    /*
+    theta: props.theta || 0.1,
+      radius: props.radius || 600,
+      opacity: props.opacity || 0.2,
+      count: props.count || 150,
+      palette: props.palette || null,
+    //   */  
+    //   const { palette, opacity } = this;
+    // if (Array.isArray(palette)) {
+    //   const cubeColor = palette[Math.floor(
+    //     Math.random() * palette.length
+    //   )];
+    // }
+
+    // const cube = new THREE.Mesh(
+    //   new THREE.BoxGeometry( 50, 50, 50),
+    //   new THREE.MeshBasicMaterial({
+    //     // color: Math.random() * 0x000080 + 0x808080,
+    //     color: 0x8888AA,
+    //     transparent: true,
+    //     opacity: 0.2,
+    //   })
+    // );
+
+
+    // console.log( cube_data)
+    var c;
+    var x, y, z;
+    var actually_added = 0;
+    for (var cube_idx = 0; cube_idx < cube_data.length; cube_idx++) {
+        // var cube = new THREE.Mesh(
+        //     // new THREE.BoxGeometry( 49, 49, 49),
+        //     new THREE.BoxGeometry( 1* data_set_xyz_multiplier, 1* data_set_xyz_multiplier, 1* data_set_xyz_multiplier),
+        //     new THREE.MeshBasicMaterial({
+        //     // color: Math.random() * 0x0000FF, // + 0x000080,
+        //     color: 0x8888AA,
+        //     // transparent: true,
+        //     // opacity: Math.random() * 0.1,
+        //     wireframe: true,
+        //     // opacity: 0.1,
+        // })
+        // );
+        // // Values were rounded, so move down each axis by half
+        // x = (cube_data[ cube_idx][0] - 0.5) * data_set_xyz_multiplier
+        // y = (cube_data[ cube_idx][1] - 0.5) * data_set_xyz_multiplier
+        // z = (cube_data[ cube_idx][2] - 0.5) * data_set_xyz_multiplier
+        // c = cube_data[ cube_idx][3]
+        // if (c < 0.05) continue;
+        // actually_added++;
+        // cube.position.x = x
+        // cube.position.y = y
+        // cube.position.z = z
+        // cube.material.color.setRGB( c, c, c)
+        // scene.add(cube);
+
+        // var dotGeometry = new THREE.BufferGeometry();
+        // dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( 
+        //     [ x, y, z], 3 
+        // ) );
+        // var dotMaterial = new THREE.PointsMaterial( { size: 0.3  * data_set_xyz_multiplier, color: 0x00ff00 } );
+        // dotMaterial.color.setRGB( c, c, c)
+        // var dot = new THREE.Points( dotGeometry, dotMaterial );
+        // scene.add( dot );
+
+        // cube.material.opacity = 0.3
+        // cube.material.color = Math.random() * 0x000080 + 0x606080,
+        // cube.material.color = new THREE.Color()
+        // cube.material.opacity = 0.3 * (x+y+z)/30
+        //, // + 0x000080,
+
+    }
+
+    var stars_geometry = new THREE.BufferGeometry();
+    var amount = cube_data.length
+    const positions = new Float32Array( amount * 3 );
+    const colors = new Float32Array( amount * 3 );
+    const sizes = new Float32Array( amount);    
+    
+    // const color = new THREE.Color( 0xff00ff );
+    for (var i = 0; i < amount; i++) {
+        x = (cube_data[ i][0] - 0.5) * data_set_xyz_multiplier
+        y = (cube_data[ i][1] - 0.5) * data_set_xyz_multiplier
+        z = (cube_data[ i][2] - 0.5) * data_set_xyz_multiplier
+        c = cube_data[  i][3]
+        positions[i*3+0] = x
+        positions[i*3+1] = y
+        positions[i*3+2] = z
+        colors[i*3+0] = c
+        colors[i*3+1] = c
+        colors[i*3+2] = c
+        
+        // positions[i*3+1] = bucket['positions'][i][1];
+        // positions[i*3+2] = bucket['positions'][i][2];
+        // console.log( 'ALERT 5', amount, bucket['positions'][i], positions[i*3], bucket['positions'][i][0])
+        // color.toArray( colors, i * 3 );
+        // colors.push( c * 256, c * 256, c * 256)
+        sizes[i] = (c**2) * data_set_xyz_multiplier * 20
+    }    
+    
+    // for (var i = 0; i < cube_data.length; cube_idx++) sizes[i] = cube_data[ i][3] * data_set_xyz_multiplier / 2
+
+    // for (var i = 0; i < amount; i++) sizes[i] = size;
+    stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
+    stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+    stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
+
+    const point_material = new THREE.ShaderMaterial( {
+        uniforms: {
+            color: { value: new THREE.Color( 0xffffff ) },
+            // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+            // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
+            pointTexture: { value: new THREE.TextureLoader().load( 'images/star-glare6.png' ) }
+
+        },
+        vertexShader: document.getElementById( 'vertexshader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        transparent: true,
+        vertexColors : true
+        // flatShading: true
+
+    } );
+
+    var points = new THREE.Points( stars_geometry, point_material );
+    scene.add( points );
+    return amount;
+    
+    // return actually_added;
+    // for (var y = 1; y < 10; y++) {
+    //     for (var x = 1; x < 10; x++) {
+    //         for (var z = 1; z < 10; z++) {
+    //             var cube = new THREE.Mesh(
+    //                 // new THREE.BoxGeometry( 49, 49, 49),
+    //                 new THREE.BoxGeometry( 50, 50, 50),
+    //                 new THREE.MeshBasicMaterial({
+    //                 color: Math.random() * 0x0000FF, // + 0x000080,
+    //                 // color: 0x8888AA,
+    //                 // transparent: true,
+    //                 // opacity: Math.random() * 0.1,
+    //                 wireframe: true,
+    //                 // opacity: 0.1,
+    //             })
+    //             );
+    //             cube.position.x = x * 50 + 100
+    //             cube.position.y = y * 50
+    //             cube.position.z = z * 50
+    //             // cube.material.opacity = 0.3
+    //             // cube.material.color = Math.random() * 0x000080 + 0x606080,
+    //             // cube.material.color = new THREE.Color()
+    //             // cube.material.opacity = 0.3 * (x+y+z)/30
+    //             cube.material.color.setRGB( ((30 - (x+y+z))/30)**4, ((10-z)/10)**4, ((x+y+z)/30)**4), // + 0x000080,
+    //             // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+    //             // console.log('cube: ', cube)
+    //             scene.add(cube);
+    //         }
+        
+    //     }
+    // }
+}
 
 
 function add_stars_to_scene( scene, star_coords) {
@@ -520,7 +878,11 @@ function add_stars_to_scene( scene, star_coords) {
 
 // Based on SO answers pointing to most recent JS standards and usage. What do I know.
 function loadScript (scene, sky_element, async = false, type = "text/javascript") {
-	var filename = './data/' + sky_element + '.js';
+	// var filename = './data/' + sky_element + '.js';
+    // New data set format:
+    // url: data/set-star_density/8.js
+
+	var filename = './data/set-' + data_set + '/' + sky_element + '.js';
 	var FILE_URL = filename;
 
 	if (loading_lock) {
@@ -539,14 +901,15 @@ function loadScript (scene, sky_element, async = false, type = "text/javascript"
             scriptEle.addEventListener("load", (ev) => {
                 resolve({ status: true });
                 // Add the data to all_stars[] where it will be checked and read from later
-				all_stars[sky_element] = stars;
+				// all_stars[sky_element] = stars;
+				all_stars[sky_element] = data;
 				loading_lock = false;
 
                 var num_loaded = Object.keys( all_stars).length;
                 var total = available_elements.length
 				console.log("Parsed file " + num_loaded + ' of ' + total
                     + ' (' + sky_element + '): #'
-                    + all_stars[sky_element].length + " stars' data loaded.");
+                    + all_stars[sky_element].length + " " + data_set_type + "' data loaded.");
                 
 
 
@@ -648,6 +1011,8 @@ function init() {
 
     const axesHelper = new THREE.AxesHelper( star_max_dist );
     scene.add( axesHelper );
+
+
 
     var rendered_sky_elements = []
 
@@ -924,32 +1289,41 @@ function toggle_global_sizeAttenuation() {
 }
 
 function reload_all_stars() {
-    if (stars_filter == prev_stars_filter) {
-        console.log( 'already watching filter ' + stars_filter)
-        return 0;
-    }
+    // if (stars_filter == prev_stars_filter) {
+    //     console.log( 'already watching filter ' + stars_filter)
+    //     return 0;
+    // }
     
-    if ((stars_filter == 'galactic') && (global_sizeAttenuation == true))
-        toggle_global_sizeAttenuation();
+    // if ((stars_filter == 'galactic') && (global_sizeAttenuation == true))
+    //     toggle_global_sizeAttenuation();
 
 
     // Reset scene
     scene.remove.apply(scene, scene.children);
     all_stars = {}
     total_stars_in_scene = 0
+    total_cubes_in_scene = 0
+    available_elements = []
+    for (var i = 0; i < 100; i++) available_elements.push( i);
+    // for (var i = 0; i < 2; i++) available_elements.push( i);
 
     // Add Sol
     add_stars_to_scene( scene, [
-    [ 0, 0, 0, 1, -10],
+        [ 0, 0, 0, 1, -10],
     // [ 5, 5, 5, 0.5, -10],
     // [ 10, 20, 10, 2, -10]
     ])
+
+    // add_cubes_to_scene( scene, [])
+    // add_nebulae_to_scene( scene, [])
     
     rendered_sky_elements = []
     console.log('Full data reload should occur automatically now...')
 
     // rendered_sky_elements = []
-    prev_stars_filter = stars_filter;
+    // prev_stars_filter = stars_filter;
+    prev_data_set = data_set
+
     initial_scene_reloaded = true;
 }
 
@@ -959,7 +1333,10 @@ function load_next_sky_element() {
     var all_stars_keys = Object.keys( all_stars)
     // console.log('DEBUG61', all_stars_keys)
     for (var index in available_elements) {
-        element = available_elements[index];
+        // element = available_elements[index];
+        // From now on elements will just be the numbers 0 to 99
+        // so that every data set consists of 100 files
+        element = index;
 
         if (! all_stars_keys.includes(element)) { 
             // console.log( 'Need to load element ' + element)
@@ -985,17 +1362,23 @@ function load_available_sky_elements() {
             // console.log( 'Need to parse element ' + element)
             // only parse 1 to save resources
             var total_stars = all_stars[ element].length;
-            var num_added = add_stars_to_scene( scene, all_stars[ element])
+            var num_added
+            if (data_set_type == 'cubes') {
+                num_added = add_cubes_to_scene( scene, all_stars[ element]);
+                total_cubes_in_scene += num_added
+            } else  {
+                num_added = add_stars_to_scene( scene, all_stars[ element]);
+                total_stars_in_scene += num_added
+            } 
 
             // Try to allow garbage collection to kick in else we
             // use way too much memory
             all_stars[ element] = 0;
             rendered_sky_elements.push( element)
-            total_stars_in_scene += num_added
             console.log( "Added " + num_added + '/' 
                 + total_stars + ' to 3D scene from element: ' + element 
                 + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + '). '
-                + 'Total stars in scene: ' + total_stars_in_scene);
+                + 'Total stars/cubes in scene: ' + total_stars_in_scene+'/'+total_cubes_in_scene);
             // return 0
         } else {
             // console.log( 'Already parsed: ' + element)
@@ -1319,6 +1702,9 @@ function animate() {
         + camera_vector.x.toFixed(2) + ', ' 
         + camera_vector.y.toFixed(2) + ', ' 
         + camera_vector.z.toFixed(2)
+        + '\nTotal stars/cubes in scene: ' 
+        + '  ' + total_stars_in_scene+'/'+total_cubes_in_scene
+        
         ;
 
 

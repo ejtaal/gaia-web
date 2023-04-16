@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
 
-def hm( msg, pre = '*'):
-    # Hacker message, what else ;)
-    CYAN = '\033[96m'; GREEN = '\033[92m'; YELLOW = '\033[93m'
-    RED = '\033[91m'; ENDC = '\033[0m'; BOLD = '\033[1m'
-    if pre == '!': msg = f"{RED}[{pre}] {msg}"
-    elif pre == '+': msg = f"{GREEN}[{pre}] {msg}"
-    elif pre == '-': msg = f"{YELLOW}[{pre}] {msg}"
-    else: msg = f"{CYAN}[{pre}] {msg}"
-    print( f"{BOLD}{msg}{ENDC}")
-    
-
 
 
 import glob
@@ -20,11 +9,400 @@ import traceback
 import sys
 import numpy as np
 
+sys.path.append('../')
+from gaia_web_include import *
+
+print( GAIAWEB_BIN_SETS)
+# exit(8)
+
 from alive_progress import *
 config_handler.set_global( length=60, spinner='classic', enrich_print = False, file = sys.stderr, force_tty = True)
 
-sys.path.append('../')
-from gaia_web_include import *
+
+def recursive_array_add( arr, index, add):
+    print( arr, index, add)
+    if index in arr:
+        arr[index] += add
+    else:
+        arr[index] = {}
+
+
+
+# def return_key_or_value( arr, o, fields):
+
+
+def main():
+
+    global GRAND_DB_FULLPATH
+    global GRAND_DB_TABLENAME
+    global BIN_DB_BASEPATH
+
+    bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
+
+    row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+    grand_total_rows = row_count
+    hm( f"Total source star count matches grand DB: {grand_total_rows:,}", '+')
+
+
+    for bin_name in GAIAWEB_BIN_SETS.keys():
+        c = bigdb_conn.cursor()
+        b = GAIAWEB_BIN_SETS[bin_name]
+
+        bin_db_file = f'{BIN_DB_BASEPATH}/{bin_name}.sqlite'
+
+        print(b)
+
+        bin_collector_count = {}
+        bin_collector_sum = {}
+        bin_collector_avg = {}
+
+        where = b['where']
+        hm( f'SELECT * FROM {GRAND_DB_TABLENAME} {where}')
+        c.execute( f'SELECT * FROM {GRAND_DB_TABLENAME} {where}')
+        num_fields = len(c.description)
+        field_names = [i[0] for i in c.description]
+        
+        print(num_fields)
+        print(field_names)
+
+        # Get the indexes of the fields we want to bin
+        bin_fields = []
+        for i in range( 0, len(c.description)):
+            if c.description[i][0] in b['bin_base_cols']:
+                bin_fields.append( i)
+
+        hm( bin_fields)
+        hm( c.rowcount)
+
+        what_field_index = 0
+        if b['what'] == 'avg':
+            for i in range( 0, len(c.description)):
+                if c.description[i][0] == b['what_field']:
+                    what_field_index = i
+
+        
+        row_count = 0
+        for row in c:
+            row_count += 1
+            field_bins = []
+            for field in bin_fields:
+                # Or should we round so that Sol comes in the middle of a box always?
+                field_bin = round( row[field] / b['step_size'])
+                field_bins.append( field_bin)
+
+            # print(field_bins)
+            tup = tuple( field_bins)
+            # if b['what'] == 'count':
+            if tup in bin_collector_count:
+                bin_collector_count[ tup] += 1
+            else:
+                bin_collector_count[ tup] = 1
+            
+            if b['what'] == 'avg':
+                if tup in bin_collector_sum:
+                    bin_collector_sum[ tup] += row[what_field_index] 
+                else:
+                    bin_collector_sum[ tup] = row[what_field_index]
+                bin_collector_avg[ tup] = bin_collector_sum[ tup] / bin_collector_count[ tup]
+            
+                if row_count % 100000 == 0:
+                    hm( f'Bin {bin_name}: {row_count:,} rows done so far ...')
+                    sorted_arr = sorted( bin_collector_avg.items(), key=lambda item: item[1])
+                    preview_array( sorted_arr)
+            else:
+                if row_count % 100000 == 0:
+                    hm( f'Bin {bin_name}: {row_count:,} rows done so far ...')
+                    sorted_arr = sorted( bin_collector_count.items(), key=lambda item: item[1])
+                    preview_array( sorted_arr)
+            
+
+        # pprint(bin_collector)
+                # print(c)
+                # exit(4)
+                # pass            
+            continue
+
+        # pprint(bin_collector)
+        flat_dict = []
+        array_to_use = {}
+        value_name = 'count'
+        if b['what'] == 'avg':
+            array_to_use = bin_collector_avg
+            value_name = b['what_field']
+        else:
+            array_to_use = bin_collector_count
+
+        pprint( array_to_use)
+        for key, value in array_to_use.items():
+            o = {}
+            for idx in range( 0, len(b['bin_base_cols'])):
+                o[ b['bin_base_cols'][idx]] = key[idx]
+                o[ value_name] = value
+            flat_dict.append( o)
+
+
+        # preview_array( flat_dict)
+        pprint( flat_dict)
+        '''
+
+
+
+            if tup in bin_collector_sum:
+                bin_collector_sum[ tup] += row[what_field_index] 
+            else:
+                bin_collector_sum[ tup] = row[what_field_index]
+            bin_collector_avg[ tup] = bin_collector_sum[ tup] / bin_collector_count[ tup]
+        
+            if row_count % 100000 == 0:
+                hm( f'Bin {bin_name}: {row_count:,} rows done so far ...')
+                sorted_arr = sorted( bin_collector_avg.items(), key=lambda item: item[1])
+                preview_array( sorted_arr)
+        else:
+        '''
+        df = pd.json_normalize( flat_dict) #, orient='keys')
+        print( df)
+        conn = sqlite3.connect( bin_db_file)
+        try:
+            df.to_sql( bin_name, conn, if_exists='replace', index=False)
+            records = len( df)
+            hm( f'Data stored to {bin_db_file} ({records} rows)')
+            # exit(4)
+        except sqlite3.IntegrityError as e:
+            hm( f'file {source_db}, seems loaded already (integrity error).','-')
+            # print('_', end='')
+            # print('INTEGRITY ERROR\n')
+            # print(traceback.print_exc())
+            return 0
+        except sqlite3.Error as er:
+            print('SQLite error: %s' % (' '.join(er.args)))
+            print("Exception class is: ", er.__class__)
+            print('SQLite traceback: ')
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            print(traceback.format_exception(exc_type, exc_value, exc_tb))
+        finally:
+            pass
+            # df.to_sql(  bin_db_file)
+        
+        continue
+    exit(9)
+    '''
+            cur_level = bin_collector
+            bin_index_tuple = []
+            for field_bin_index in range( 0, len( field_bins)):
+                bin_index_tuple.append( row[field_bin_index])
+            
+
+
+
+            # Descend down the bin_collector array dimensions until we arrive in our bin
+            for field_bin_index in range( 0, len( field_bins)):
+                # recursive_array_add( cur_level, field_bin, 1)
+                field_bin = field_bins[ field_bin_index]
+                if field_bin_index < len( bin_fields) - 1:
+                    if field_bin not in cur_level:
+                        cur_level[field_bin] = {}
+                    cur_level = cur_level[field_bin]
+                else:
+                    # This is the last field_bin, so set the actual value of it
+                    if field_bin not in cur_level:
+                        cur_level[field_bin] = 1
+                    else:
+                        cur_level[field_bin] += 1
+
+            # cur_level = cur_level[field_bin]
+            # now cur_level is the field_bins.length's dimensional {} where we should set a value
+            # instead of being set to an empty {}
+
+            if row_count % 1000 == 999:
+                hm( f'{row_count:,}')
+
+        pprint(bin_collector)
+                # print(c)
+                # exit(4)
+                # pass
+
+        
+        # bin_collector needs to be flattened before json_normalize can use it
+        # done = False
+        # cur_collection = bin_collector
+        # for field_name_index in range( 0, len( field_bins)):
+        #     new_collection = {}
+        #     field_name = b['bin_base_cols'][field_name_index]
+        #     for item in cur_collection:
+
+
+        
+        # flat_dict = return_key_or_value
+        # o = {}
+        # for k in bin_collector.keys():
+        #     cur_level = 0
+
+
+        #     bin_index = 0
+        #     # collect field names in o
+        #     o[]
+        #     done = False
+            
+
+
+        # df = pd.json_normalize( bin_collector, orient='keys')
+        # print( df)
+        exit(3)
+        '''
+    exit(1)
+   
+    hm( "1. Checking all SQlite DB files and counting rows ...")
+
+    total_rows_in_sources = 0
+
+    SQlite_db_files=glob.glob( f"{SOURCE_DB_PATH}/GaiaSource_*.sqlite", recursive=False)
+    # print (SQlite_db_files)
+    # for sqlite_db in []:
+    files_bar = alive_it(SQlite_db_files)
+    files_bar = alive_it([])
+    for sqlite_db in files_bar:
+        # print( sqlite_db)
+        count_star = get_sqlite3_count_star( sqlite_db, 'gaia_source_filtered')
+        total_rows_in_sources += count_star
+        files_bar.text(f'Star count so far: {total_rows_in_sources:,}') 
+    hm(f'Total star count in sources: {total_rows_in_sources:,}') 
+    # exit(8)
+        # print('.', end='')
+        # for row in rows:
+        #     print(row)
+        # save_db_stars.to_sql( 'gaia_source_filtered', conn, if_exists='replace', index=False)
+    
+    # print( f'total_rows_in_sources = {total_rows_in_sources:,}')
+
+    # GRAND_GAIA_SOURCE_DB = f"{SOURCE_DB_PATH}/GrandGaiaSource.sqlite"
+
+    # total_rows_in_sources = 127849797
+    # total_rows_in_sources = 49426859
+    # hm( f'total_rows_in_sources = {total_rows_in_sources:,}')
+
+    grand_total_rows = 0
+    try:
+        hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
+        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+        grand_total_rows = row_count
+    except:
+        exit(1)
+        pass
+    finally:
+        # print( 'grand total: ', grand_total_rows)
+        pass
+
+    # print( 'grand total: ', grand_total_rows)
+
+    if total_rows_in_sources == grand_total_rows or True:
+        hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
+    else:
+        hm( f"Total star count in source DBs doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
+
+        # hm('Updating the Grand DB ...')
+        hm( 'Attempting to fill data from latest files ...')
+    
+        files_bar = alive_it(SQlite_db_files)
+        for sqlite_db in files_bar:
+            stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+            if stars_added > 0:
+                row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+                grand_total_rows = row_count
+                hm( f'Added {stars_added} from {sqlite_db}', '+')
+            files_bar.text(f'Grand star count so far: {grand_total_rows:,} / {total_rows_in_sources:,}') 
+            # files_bar.fin
+
+        hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources}') 
+
+        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+        grand_total_rows = row_count
+
+        if total_rows_in_sources == grand_total_rows:
+            hm( f"Total source rows now match grand DB: {total_rows_in_sources:,}", '+')
+        else:
+            hm( f"Fatal error, total rows in source DBs still doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
+            exit(1)
+            hm('Updating the Grand DB ...')
+            for sqlite_db in alive_it(SQlite_db_files):
+                update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+
+
+    for dataset_name in GAIAWEB_DATA_SETS.keys():
+        hm( f"Generating Gaia-web dataset {dataset_name} ...")
+
+        COUNT_QUERY=f"""SELECT count(1)
+        FROM grand_gaia_source
+        {GAIAWEB_DATA_SETS[dataset_name]}"""
+
+        SQL_QUERY=f"""SELECT 
+        {SELECT_ROUNDED_CLAUSE} 
+        FROM grand_gaia_source
+        {GAIAWEB_DATA_SETS[dataset_name]}"""
+
+        # print( f"SQL_QUERY = {SQL_QUERY}")
+
+
+        # dataset_df = pd.read_sql_query( SQL_QUERY, bigdb_conn)
+        # dataset_num = len( dataset_df)
+
+        '''
+        The following limitations apply:
+        - More than 10m stars will start to choke the rendering engine
+        - More than 500Mb per file won't be cached by Cloudflare (too big a file anyway)
+        - 100 files per set seems a reasonable coverage split
+        Nice to have's:
+        - Order data in increasing distance, will require index on dist column?
+        - 
+        '''
+
+        hm( "Counting stars in this set...")
+        dataset_num = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME, GAIAWEB_DATA_SETS[dataset_name])
+
+        hm( f"Dataset {dataset_name} has {dataset_num:,} stars.")
+        if ( dataset_num > 5 * 10 **6):
+            hm( f'More 5m star, adjust query to reduce size:\n{COUNT_QUERY}', '-')
+        else:
+            # Create 100 files of roughly equal size
+            cur = bigdb_conn.cursor()
+            cur.execute( SQL_QUERY);
+            for row in cur:
+                print( row)
+                exit(9)
+            # js_files = []
+            # for file_index in range(1,101):
+                """
+                cursor.fetchall() fetches all results into a list first.
+                Instead, you can iterate over the cursor itself:
+                """
+                
+    # do_stuff_with_row
+
+        # dataset_file = f"{SOURCE_DB_PATH}/{dataset_name}.js"
+        
+        # checking count first:
+        # echo "var stars = [" > "$dataset_file"
+
+        # for sqlite_db in GaiaSource_*.sqlite; do
+        #     # Scan for count first? Maybe only in a single indexed db
+        #     SQL_QUERY=f"""SELECT 
+        #     {SELECT_ROUNDED} 
+        #     FROM gaia_source_filtered
+        #     {where_clause}"""
+        #     sqlite3 "$sqlite_db" "$SQL_QUERY LIMIT 2" \
+        #         | tr '|' , \
+        #         | perl -pe '
+        #         s/^/[/;
+        #         s/$/],/;
+        #         s/(\d\.\d{3})\d+/\1/g;
+        #         s/(\d{3}\.\d)\d+/\1/g;
+        #         s/(\d\.\d)\d+\]/\1]/;
+        #         ' \
+        #         | cat     >> "$dataset_file"
+            
+        #     exit 11
+        # done
+        # echo "];" >> "$js_out"
+
 
 def get_sqlite3_count_star( db_filename, table_name, where_clause=''):
     conn = sqlite3.connect( db_filename)
@@ -111,204 +489,8 @@ def update_grand_db( grand_db, source_db):
     
     cnx.close()
 
-# Import statistics Library
-import statistics
-
-# Calculate middle values
-# print(statistics.median([1, 3, 5, 7, 9, 11, 13]))
-# print(statistics.median([1, 3, 5, 7, 9, 11]))
-# print(statistics.median([-11, 5.5, -3.4, 7.1, -9, 22])) 
 
 
-def main():
-    
-    for bin_name in GAIAWEB_BIN_SETS.keys():
-        # c = bigdb_conn.cursor()
-        b = GAIAWEB_BIN_SETS[bin_name]
-
-        bin_db_file = f'{BIN_DB_BASEPATH}/{bin_name}.sqlite'        
-        conn = sqlite3.connect( bin_db_file)
-        df = pd.read_sql_query( f'SELECT * FROM {bin_name}', conn)
-        values = df[ b['what_field']].to_list()
-        print( values)
-        preview_array( sorted( values))
-        # If these don't vary much then use either, else use median?
-        print( 'median: ', statistics.median( values))
-        print( 'avg: ', statistics.mean( values))
-        minv = min( values)
-        maxv = max( values)
-        avg = statistics.mean( values)
-        print(df)
-        df[ b['what_field'] ] = (df[ b['what_field']] - minv) / (maxv - minv)
-        df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-        df.sort_values( 'dist', inplace=True, ignore_index=True)
-        # print( 'avg: ', statistics. ( values))
-        print(df)
-
-
-        if not os.path.exists( f'{SET_JS_BASEPATH}{bin_name}'):
-            os.mkdir( f'{SET_JS_BASEPATH}{bin_name}')
-
-        pd.set_option( 'display.max_columns',  1000)
-        pd.set_option( 'display.width',       32000)
-        np.set_printoptions(threshold=np.inf)
-        np.set_printoptions(suppress=True)
-        # not working or only if lines become too long, not for joining them together?
-        np.set_printoptions( linewidth = 120)
-
-        size = len( df)
-        for element_idx in range( 0, 100):
-            start = int(element_idx / 100 * size)
-            stop = int((element_idx + 1) / 100 * size) - 1
-            # print( 'stop/start: ', start, stop)
-            # print( df.iloc[start:stop+1])
-            # Is that some old style string formatting??
-            js_array = np.array2string( df[['x','y','z',b['what_field']]].iloc[start:stop+1].values
-                , precision=3, separator=',' ,suppress_small=True
-                , formatter={'float_kind':lambda x: "%d" % x if round(x) == x else "%.3f" % x }
-                , max_line_width=120)
-            # print( js_array)
-            
-            js_file = f'{SET_JS_BASEPATH}{bin_name}/{element_idx}.js'
-            check_before_write( js_file, 'var data = ' + js_array)
-        exit(8)
-
-
-    global GRAND_DB_FULLPATH
-    global GRAND_DB_TABLENAME
-    # GRAND_GAIA_SOURCE_DB = f"{SOURCE_DB_PATH}/GrandGaiaSource.sqlite"
-
-    # total_rows_in_sources = 127849797
-    # total_rows_in_sources = 49426859
-    # hm( f'total_rows_in_sources = {total_rows_in_sources:,}')
-
-    grand_total_rows = 0
-    try:
-        hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
-        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-        grand_total_rows = row_count
-    except:
-        exit(1)
-        pass
-    finally:
-        # print( 'grand total: ', grand_total_rows)
-        pass
-
-    # print( 'grand total: ', grand_total_rows)
-
-    if total_rows_in_sources == grand_total_rows or True:
-        hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
-    else:
-        hm( f"Total star count in source DBs doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
-
-        # hm('Updating the Grand DB ...')
-        hm( 'Attempting to fill data from latest files ...')
-    
-        files_bar = alive_it(SQlite_db_files)
-        for sqlite_db in files_bar:
-            stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
-            if stars_added > 0:
-                row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-                grand_total_rows = row_count
-                hm( f'Added {stars_added} from {sqlite_db}', '+')
-            files_bar.text(f'Grand star count so far: {grand_total_rows:,} / {total_rows_in_sources:,}') 
-            # files_bar.fin
-
-        hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources}') 
-
-        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-        grand_total_rows = row_count
-
-        if total_rows_in_sources == grand_total_rows:
-            hm( f"Total source rows now match grand DB: {total_rows_in_sources:,}", '+')
-        else:
-            hm( f"Fatal error, total rows in source DBs still doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
-            exit(1)
-            hm('Updating the Grand DB ...')
-            for sqlite_db in alive_it(SQlite_db_files):
-                update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
-
-    bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
-
-    for dataset_name in GAIAWEB_DATA_SETS.keys():
-        hm( f"Generating Gaia-web dataset {dataset_name} ...")
-
-        COUNT_QUERY=f"""SELECT count(1)
-        FROM grand_gaia_source
-        {GAIAWEB_DATA_SETS[dataset_name]}"""
-
-        SQL_QUERY=f"""SELECT 
-        {SELECT_ROUNDED_CLAUSE} 
-        FROM grand_gaia_source
-        {GAIAWEB_DATA_SETS[dataset_name]}"""
-
-        # print( f"SQL_QUERY = {SQL_QUERY}")
-
-
-        # dataset_df = pd.read_sql_query( SQL_QUERY, bigdb_conn)
-        # dataset_num = len( dataset_df)
-
-        '''
-        The following limitations apply:
-        - More than 10m stars will start to choke the rendering engine
-        - More than 500Mb per file won't be cached by Cloudflare (too big a file anyway)
-        - 100 files per set seems a reasonable coverage split
-        Nice to have's:
-        - Order data in increasing distance, will require index on dist column?
-        - 
-        '''
-
-        hm( "Counting stars in this set...")
-        dataset_num = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME, GAIAWEB_DATA_SETS[dataset_name])
-
-        hm( f"Dataset {dataset_name} has {dataset_num:,} stars.")
-        if ( dataset_num > 5 * 10 **6):
-            hm( f'More 5m star, adjust query to reduce size:\n{COUNT_QUERY}', '-')
-        else:
-            # Create 100 files of roughly equal size
-            cur = bigdb_conn.cursor()
-            cur.execute( SQL_QUERY);
-            for row in cur:
-                print( row)
-                exit(9)
-            # js_files = []
-            # for file_index in range(1,101):
-                """
-                cursor.fetchall() fetches all results into a list first.
-                Instead, you can iterate over the cursor itself:
-                """
-                
-    # do_stuff_with_row
-
-        # dataset_file = f"{SOURCE_DB_PATH}/{dataset_name}.js"
-        
-        # checking count first:
-        # echo "var stars = [" > "$dataset_file"
-
-        # for sqlite_db in GaiaSource_*.sqlite; do
-        #     # Scan for count first? Maybe only in a single indexed db
-        #     SQL_QUERY=f"""SELECT 
-        #     {SELECT_ROUNDED} 
-        #     FROM gaia_source_filtered
-        #     {where_clause}"""
-        #     sqlite3 "$sqlite_db" "$SQL_QUERY LIMIT 2" \
-        #         | tr '|' , \
-        #         | perl -pe '
-        #         s/^/[/;
-        #         s/$/],/;
-        #         s/(\d\.\d{3})\d+/\1/g;
-        #         s/(\d{3}\.\d)\d+/\1/g;
-        #         s/(\d\.\d)\d+\]/\1]/;
-        #         ' \
-        #         | cat     >> "$dataset_file"
-            
-        #     exit 11
-        # done
-        # echo "];" >> "$js_out"
-
-if __name__ == "__main__":
-    # stuff only to run when not called via 'import' here
-    main()
 
 
     # count_star = get_sqlite3_count_star( sqlite_db, 'gaia_source_filtered')
@@ -327,7 +509,7 @@ if False:
     # do_stuff_with_row
 
 
-exit(3)
+# exit(3)
 
 
 
@@ -544,3 +726,7 @@ count=0
     sleep $SLEEP
 done
 """
+if __name__ == "__main__":
+    # stuff only to run when not called via 'import' here
+    main()
+exit(0)
