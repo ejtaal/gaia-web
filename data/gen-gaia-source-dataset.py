@@ -15,10 +15,8 @@ def hm( msg, pre = '*'):
 
 import glob
 import sqlite3
-import pandas as pd
 import traceback
 import sys
-import numpy as np
 
 from alive_progress import *
 config_handler.set_global( length=60, spinner='classic', enrich_print = False, file = sys.stderr, force_tty = True)
@@ -119,18 +117,20 @@ import statistics
 # print(statistics.median([1, 3, 5, 7, 9, 11]))
 # print(statistics.median([-11, 5.5, -3.4, 7.1, -9, 22])) 
 
-
-def main():
-    
+def write_bin_sets():
+    hm('Writing bin sets ...')
     for bin_name in GAIAWEB_BIN_SETS.keys():
+        hm( f'... bin set {bin_name} ...')
+
         # c = bigdb_conn.cursor()
         b = GAIAWEB_BIN_SETS[bin_name]
 
         bin_db_file = f'{BIN_DB_BASEPATH}/{bin_name}.sqlite'        
+
         conn = sqlite3.connect( bin_db_file)
         df = pd.read_sql_query( f'SELECT * FROM {bin_name}', conn)
         values = df[ b['what_field']].to_list()
-        print( values)
+        # print( values)
         preview_array( sorted( values))
         # If these don't vary much then use either, else use median?
         print( 'median: ', statistics.median( values))
@@ -149,31 +149,36 @@ def main():
         if not os.path.exists( f'{SET_JS_BASEPATH}{bin_name}'):
             os.mkdir( f'{SET_JS_BASEPATH}{bin_name}')
 
-        pd.set_option( 'display.max_columns',  1000)
-        pd.set_option( 'display.width',       32000)
-        np.set_printoptions(threshold=np.inf)
-        np.set_printoptions(suppress=True)
-        # not working or only if lines become too long, not for joining them together?
-        np.set_printoptions( linewidth = 120)
 
-        size = len( df)
-        for element_idx in range( 0, 100):
-            start = int(element_idx / 100 * size)
-            stop = int((element_idx + 1) / 100 * size) - 1
-            # print( 'stop/start: ', start, stop)
-            # print( df.iloc[start:stop+1])
-            # Is that some old style string formatting??
-            js_array = np.array2string( df[['x','y','z',b['what_field']]].iloc[start:stop+1].values
-                , precision=3, separator=',' ,suppress_small=True
-                , formatter={'float_kind':lambda x: "%d" % x if round(x) == x else "%.3f" % x }
-                , max_line_width=120)
-            # print( js_array)
-            
-            js_file = f'{SET_JS_BASEPATH}{bin_name}/{element_idx}.js'
-            check_before_write( js_file, 'var data = ' + js_array)
-        exit(8)
+        js_prefix = 'var data = '
+        df_write_gaia_set( bin_name, js_prefix, df, ['x','y','z',b['what_field']])
+
+def gen_data_set_index():
+    global GAIA_WEB_DATA_SET_INDEX
+    
+    all_data_sets = {}
+    
+    for n in GAIAWEB_DATA_SETS.keys():
+        all_data_sets[n] = 'stars'
+        # all_data_sets.append( [ n, 'stars'])
+
+    for n in GAIAWEB_BIN_SETS.keys():
+        all_data_sets[n] = 'cubes'
+        # all_data_sets.append( [ n, 'cubes'])
+    
+    
+    print( all_data_sets)
+    # print( np.array2string( all_data_sets))
+    check_before_write( GAIA_WEB_DATA_SET_INDEX, 'var gaia_web_datasets = ' + str(all_data_sets))
+    
+
+def main():
+    
+    gen_data_set_index()
+    # exit(2)
 
 
+    hm('Writing regular sets ...')
     global GRAND_DB_FULLPATH
     global GRAND_DB_TABLENAME
     # GRAND_GAIA_SOURCE_DB = f"{SOURCE_DB_PATH}/GrandGaiaSource.sqlite"
@@ -182,64 +187,32 @@ def main():
     # total_rows_in_sources = 49426859
     # hm( f'total_rows_in_sources = {total_rows_in_sources:,}')
 
-    grand_total_rows = 0
-    try:
-        hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
-        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-        grand_total_rows = row_count
-    except:
-        exit(1)
-        pass
-    finally:
-        # print( 'grand total: ', grand_total_rows)
-        pass
+    # grand_total_rows = 0
+    # try:
+    #     hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
+    #     row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+    #     grand_total_rows = row_count
+    # except:
+    #     exit(1)
+    #     pass
+    # finally:
+    #     # print( 'grand total: ', grand_total_rows)
+    #     pass
 
-    # print( 'grand total: ', grand_total_rows)
-
-    if total_rows_in_sources == grand_total_rows or True:
-        hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
-    else:
-        hm( f"Total star count in source DBs doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
-
-        # hm('Updating the Grand DB ...')
-        hm( 'Attempting to fill data from latest files ...')
-    
-        files_bar = alive_it(SQlite_db_files)
-        for sqlite_db in files_bar:
-            stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
-            if stars_added > 0:
-                row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-                grand_total_rows = row_count
-                hm( f'Added {stars_added} from {sqlite_db}', '+')
-            files_bar.text(f'Grand star count so far: {grand_total_rows:,} / {total_rows_in_sources:,}') 
-            # files_bar.fin
-
-        hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources}') 
-
-        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-        grand_total_rows = row_count
-
-        if total_rows_in_sources == grand_total_rows:
-            hm( f"Total source rows now match grand DB: {total_rows_in_sources:,}", '+')
-        else:
-            hm( f"Fatal error, total rows in source DBs still doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
-            exit(1)
-            hm('Updating the Grand DB ...')
-            for sqlite_db in alive_it(SQlite_db_files):
-                update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+    # hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
 
     bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
 
     for dataset_name in GAIAWEB_DATA_SETS.keys():
-        hm( f"Generating Gaia-web dataset {dataset_name} ...")
+        hm( f"  ... Gaia-web dataset {dataset_name} ...")
 
         COUNT_QUERY=f"""SELECT count(1)
-        FROM grand_gaia_source
+        FROM {GRAND_DB_TABLENAME}
         {GAIAWEB_DATA_SETS[dataset_name]}"""
 
         SQL_QUERY=f"""SELECT 
         {SELECT_ROUNDED_CLAUSE} 
-        FROM grand_gaia_source
+        FROM {GRAND_DB_TABLENAME}
         {GAIAWEB_DATA_SETS[dataset_name]}"""
 
         # print( f"SQL_QUERY = {SQL_QUERY}")
@@ -265,18 +238,27 @@ def main():
         if ( dataset_num > 5 * 10 **6):
             hm( f'More 5m star, adjust query to reduce size:\n{COUNT_QUERY}', '-')
         else:
-            # Create 100 files of roughly equal size
-            cur = bigdb_conn.cursor()
-            cur.execute( SQL_QUERY);
-            for row in cur:
-                print( row)
-                exit(9)
+            hm( "Suitable for a dataset, extracting data ...", '+')
+            df = pd.read_sql_query( SQL_QUERY, bigdb_conn)
+            print(df)
+            # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
+            df.sort_values( 'dist', inplace=True, ignore_index=True)
+            # print( 'avg: ', statistics. ( values))
+            print(df)
+
+            if not os.path.exists( f'{SET_JS_BASEPATH}{dataset_name}'):
+                os.mkdir( f'{SET_JS_BASEPATH}{dataset_name}')
+
+            js_prefix = 'var data = '
+            df_write_gaia_set( dataset_name, js_prefix, df, ['x','y','z','color','abs_mag'])
+            # exit(8)
+
             # js_files = []
             # for file_index in range(1,101):
-                """
-                cursor.fetchall() fetches all results into a list first.
-                Instead, you can iterate over the cursor itself:
-                """
+            """
+            cursor.fetchall() fetches all results into a list first.
+            Instead, you can iterate over the cursor itself:
+            """
                 
     # do_stuff_with_row
 

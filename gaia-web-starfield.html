@@ -157,7 +157,7 @@ Please be patient as star data is loaded in the background.
 		<!-- The main index of all sky patch elements, which basically based on this file:
             http://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/_MD5SUM.txt
          -->
-        <script type="text/javascript" src="data/gaia-web-sky-elements.js"></script>
+        <script type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
         <script type="module">
 // Uhm yeah the HTML ain't gonna dictate our indentation. Who does it think it is!?!?
 import * as THREE from 'three';
@@ -229,7 +229,29 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 
 
 
-
+// var menu = {
+//     data_set = 'star_density': '',
+//     prev_data_set = 'star_density',
+//   vely: 0,
+//   camera: {
+//     speed: 0.0001
+//   },
+//   stop: function() {
+//     this.velx = 0;
+//     this.vely = 0;
+//   },
+//   reset: function() {
+//     this.velx = 0.1;
+//     this.vely = 0.1;
+//     camera.position.z = 75;
+//     camera.position.x = 0;
+//     camera.position.y = 0;
+//     cube.scale.x = 1;
+//     cube.scale.y = 1;
+//     cube.scale.z = 1;
+//     cube.material.wireframe = true;
+//   }
+// };
 
 
 
@@ -264,8 +286,9 @@ let tour_targets = [
     /*
     */
     [  62, 130,   50],
-    [ 489, 730,  553],
+    [ 222, 336, 178],
     [ -366, 434, 203],
+    [ 489, 730,  553],
     [ 515, 340, 1055],
     [ 907, 779, 1102],
     [ 125, 1219, -130],
@@ -274,7 +297,6 @@ let tour_targets = [
     [ -2176.2, -4843.8, -2653.4 ],
     [ 3618.0, 2559.1, 6839.6 ], // Maybe globular cluster?
     /*
-    [ ],
     [ ],
     [ ],
     [ ],
@@ -302,6 +324,11 @@ const vertex = new THREE.Vector3();
 const camera_vector = new THREE.Vector3();
 const color = new THREE.Color();
 let initial_scene_reloaded = false;
+
+var spinner = ['-', '\\', '|', '/']
+let statusline = 'Date being loaded, please wait...'
+let available_elements = []
+for (var i = 0; i < 100; i++) available_elements.push( i);
 
 
 const sprite = new THREE.TextureLoader().load( 'three.js/textures/sprites/disc.png' );
@@ -1044,41 +1071,115 @@ function init() {
 
     }, 2000);
 
-    const gui = new GUI();
 
-    // TODO: build gui option for each params option
+    var gui_drop_down = {}
 
-    gui.add( params, 'option 1' ).name( 'Disable distance dimming (sizeAttentuation)' ).onChange( function ( value ) {
+    for (const [key, value] of Object.entries(gaia_web_datasets)) {
+    // for (const name in gaia_web_datasets) {
+        // console.log( `${key}: ${value}` );
+        gui_drop_down[key] = key
+    }
+    console.log( gui_drop_down );
 
-        // controls.dispose();
+    const gui = new GUI( { title: 'Dataset' });
+    
+    gui.add( { x: Object.keys(gaia_web_datasets)[0] }, 'x', gui_drop_down ).name( 'Dataset' ).onChange( function ( value ) {
+        if ( value != prev_data_set) {
+            data_set = value
+            data_set_type = gaia_web_datasets[value]
+            reload_all_stars()
+        }
+        prev_data_set = data_set
+    })
+        // gui.add( { x: 2 }, 'x', { Label1: 0, Label2: 1, Label3: 2 } ).name( 'Dataset' );
+    // make( { title: 'Options' }, gui => {
 
-        // createControls( value ? orthographicCamera : perspectiveCamera );
-        // alert('hi')
-        // To set items still loading in right
-        global_sizeAttenuation = value ? false : true;
-        // console.log( "global attentuation", global_sizeAttenuation);
+        // gui.add( { Options: 'a' }, 'Options', [ 'a', 'b', 'c' ] ).disable().enable();
+	    // gui.add( { Options: 'a' }, 'Options', [ 'a', 'b', 'c' ] ).disable();
+        // gui.add( { x: 0 }, 'x', [ 0, 1, 2 ] ).name( 'Array' );
+        // gui.add( { x: {} }, 'x', [ 0, 1, 2 ] ).name( 'Invalid initial' );
+        // gui.add( { x: {} }, 'x', { Label1: 0, Label2: 1, Label3: 2 } ).name( 'Invalid initial' );
+        // gui.add( { func() { console.log( 'hi' ); } }, 'func' ).name( 'Function' ).disable().enable();
+	    // gui.add( { func() { console.log( 'hi' ); } }, 'func' ).name( 'Function' ).disable();
+        // const longString = 'Anoptionorvaluewithaproblematicallylongname';
+        // gui.add( { x: longString }, 'x', [ longString, 1, 2 ] ).name( 'Long names' );
+    // } );
 
-        scene.traverse( function( node ) {
-            if ( node instanceof THREE.Points ) {
-                // console.log( "toggling attentuation", node.material.sizeAttenuation)
-                // insert your code here, for example:
-                // console.log( node);
-                node.material.sizeAttenuation = global_sizeAttenuation;
-                node.material.needsUpdate = true;
-            }
 
-        } );
-    } );
+    // for (var idx = 0; idx < gaia_web_datasets.length; idx++)
+    //     console.log( gaia_web_datasets[idx])
+    // for (var idx = 0; idx < gaia_web_datasets.length; idx++)
+        // console.log( gaia_web_datasets[idx])
 
-// function toggle_global_sizeAttenuation
 
-    gui.add( params, 'orthographicCamera' ).name( 'use orthographic' ).onChange( function ( value ) {
+//     gui.add( params, '' ).name( 'Disable distance dimming (sizeAttentuation)' ).onChange( function ( value ) {
 
-        // controls.dispose();
+//         // controls.dispose();
 
-        // createControls( value ? orthographicCamera : perspectiveCamera );
+//         // createControls( value ? orthographicCamera : perspectiveCamera );
+//         // alert('hi')
+//         // To set items still loading in right
+//         global_sizeAttenuation = value ? false : true;
+//         // console.log( "global attentuation", global_sizeAttenuation);
 
-    } );
+//         scene.traverse( function( node ) {
+//             if ( node instanceof THREE.Points ) {
+//                 // console.log( "toggling attentuation", node.material.sizeAttenuation)
+//                 // insert your code here, for example:
+//                 // console.log( node);
+//                 node.material.sizeAttenuation = global_sizeAttenuation;
+//                 node.material.needsUpdate = true;
+//             }
+
+//         } );
+//         } );
+
+//     // const cubeFolder = gui.addFolder('Cubes (averaged values)')
+//     // cubeFolder.add(cube.rotation, 'x', 0, Math.PI * 2)
+//     // cubeFolder.add(cube.rotation, 'y', 0, Math.PI * 2)
+//     // cubeFolder.add(cube.rotation, 'z', 0, Math.PI * 2)
+//     // cubeFolder.open()
+
+//     // const cameraFolder = gui.addFolder('Camera')
+//     // cameraFolder.add(camera.position, 'z', 0, 10)
+//     // cameraFolder.open()
+
+
+
+
+//     // TODO: build gui option for each params option
+
+//     gui.add( params, 'option 1' ).name( 'Disable distance dimming (sizeAttentuation)' ).onChange( function ( value ) {
+
+//         // controls.dispose();
+
+//         // createControls( value ? orthographicCamera : perspectiveCamera );
+//         // alert('hi')
+//         // To set items still loading in right
+//         global_sizeAttenuation = value ? false : true;
+//         // console.log( "global attentuation", global_sizeAttenuation);
+
+//         scene.traverse( function( node ) {
+//             if ( node instanceof THREE.Points ) {
+//                 // console.log( "toggling attentuation", node.material.sizeAttenuation)
+//                 // insert your code here, for example:
+//                 // console.log( node);
+//                 node.material.sizeAttenuation = global_sizeAttenuation;
+//                 node.material.needsUpdate = true;
+//             }
+
+//         } );
+//     } );
+
+// // function toggle_global_sizeAttenuation
+
+//     gui.add( params, 'orthographicCamera' ).name( 'use orthographic' ).onChange( function ( value ) {
+
+//         // controls.dispose();
+
+//         // createControls( value ? orthographicCamera : perspectiveCamera );
+
+//     } );
 
     //
 
@@ -1303,8 +1404,6 @@ function reload_all_stars() {
     all_stars = {}
     total_stars_in_scene = 0
     total_cubes_in_scene = 0
-    available_elements = []
-    for (var i = 0; i < 100; i++) available_elements.push( i);
     // for (var i = 0; i < 2; i++) available_elements.push( i);
 
     // Add Sol
@@ -1379,11 +1478,19 @@ function load_available_sky_elements() {
                 + total_stars + ' to 3D scene from element: ' + element 
                 + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + '). '
                 + 'Total stars/cubes in scene: ' + total_stars_in_scene+'/'+total_cubes_in_scene);
+
+            // var spin = spinner[ rendered_sky_elements.length + Object.keys(all_stars)]
+            var total = rendered_sky_elements.length + Object.keys(all_stars).length
+            var spin = spinner [total % 4]
+            statusline = 'Loaded/parsed '
+                + Object.keys(all_stars).length + '/' + rendered_sky_elements.length 
+                + ' of ' + available_elements.length;
             // return 0
         } else {
             // console.log( 'Already parsed: ' + element)
             
         }
+        
     }
 }
 
@@ -1704,7 +1811,7 @@ function animate() {
         + camera_vector.z.toFixed(2)
         + '\nTotal stars/cubes in scene: ' 
         + '  ' + total_stars_in_scene+'/'+total_cubes_in_scene
-        
+        + '\n' + statusline
         ;
 
 

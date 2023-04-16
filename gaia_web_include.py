@@ -1,3 +1,6 @@
+
+import pandas as pd
+import numpy as np
 from pprint import pprint
 import os
 
@@ -8,6 +11,8 @@ GRAND_DB_FULLPATH = "./grand/Grand_gaia_source.sqlite"
 GRAND_DB_TABLENAME = 'grand_gaia_source'
 
 BIN_DB_BASEPATH = "./bins/"
+
+GAIA_WEB_DATA_SET_INDEX = "./gaia-web-data-sets-index.js"
 
 
 
@@ -45,6 +50,7 @@ def preview_array( arr):
             else:
                 hm( f"{v}", '+')
 
+
 def check_before_write( filename, data):
 	# SSD optimization. Read the file as a string and don't
 	# rewrite it unless the data has changed.
@@ -53,19 +59,57 @@ def check_before_write( filename, data):
 		with open(filename, 'r') as myfile:
 			existingdata = myfile.read()
 		if existingdata == data:
-			print ( '=> ' + filename + ' : Already detected identical contents. File not rewritten.')
+			# print ( '=> ' + filename + ' : Already detected identical contents. File not rewritten.')
 			return True
 	# In any other case we need to rewrite the data:
 	fh = open( filename, "w")
 	fh.write( data)
 	fh.close()
-	print ( '=> {:s} : {:s} bytes written.'.format( filename, str(len(data))))
+	# print ( '=> {:s} : {:s} bytes written.'.format( filename, str(len(data))))
+
+
+def df_write_gaia_set( set_name, js_array_prefix, df, fields):
+
+    # Split the df in 100 parts and write them to the set directory accordingly
+    pd.set_option( 'display.max_columns',  1000)
+    pd.set_option( 'display.width',       32000)
+    np.set_printoptions(threshold=np.inf)
+    np.set_printoptions(suppress=True)
+    # not working or only if lines become too long, not for joining them together?
+    np.set_printoptions( linewidth = 120)
+
+    size = len( df)
+    for element_idx in range( 0, 100):
+        start = int(element_idx / 100 * size)
+        stop = int((element_idx + 1) / 100 * size) - 1
+        # print( 'stop/start: ', start, stop)
+        # print( df.iloc[start:stop+1])
+        # Is that some old style string formatting??
+        js_array = np.array2string( df[ fields].iloc[start:stop+1].values
+            , precision=3, separator=',' ,suppress_small=True
+            , formatter={'float_kind':lambda x: "%d" % x if round(x) == x else "%.3f" % x }
+            , max_line_width=120)
+        # print( js_array)
+        
+        js_file = f'{SET_JS_BASEPATH}{set_name}/{element_idx}.js'
+        check_before_write( js_file, js_array_prefix + js_array)
+
+
+
+
+
+
+
+
 
 
 GAIAWEB_DATA_SETS = {
     # 'px5-3000ly': "WHERE parallax / parallax_error > 5 and sqrt(x*x + y*y + z*z) < 3000",
-    'px5-3000ly': "WHERE px_over_err > 5 and dist < 3000",
-    'px50-all': "WHERE px_over_err > 50"
+    'px150-3000ly': "WHERE px_over_err > 150 and dist < 3000",
+    'px5-500ly': "WHERE px_over_err > 5 and dist < 500",
+    'px10-1000ly': "WHERE px_over_err > 10 and dist < 1000",
+    'px5-3000ly': "WHERE px_over_err > 10 and dist < 3000",
+    'px50-all-mag0': "WHERE px_over_err > 50 and abs_mag < 0"
 }
 
 
@@ -104,9 +148,13 @@ GAIAWEB_BIN_SETS = {
 
 
 SELECT_ROUNDED_CLAUSE='''
-printf("%.1f", x),
-printf("%.1f", y),
-printf("%.1f", z),
-printf("%.1f", color),
-printf("%.1f", abs_mag)
+printf("%.1f", x) as x,
+printf("%.1f", y) as y,
+printf("%.1f", z) as z,
+printf("%.1f", color) as color,
+printf("%.1f", abs_mag) as abs_mag,
+dist
+
 '''
+
+# printf("%.1f", abs_mag) as 

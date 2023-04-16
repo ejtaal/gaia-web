@@ -132,7 +132,7 @@ def main():
         else:
             array_to_use = bin_collector_count
 
-        pprint( array_to_use)
+        # pprint( array_to_use)
         for key, value in array_to_use.items():
             o = {}
             for idx in range( 0, len(b['bin_base_cols'])):
@@ -142,7 +142,7 @@ def main():
 
 
         # preview_array( flat_dict)
-        pprint( flat_dict)
+        # pprint( flat_dict)
         '''
 
 

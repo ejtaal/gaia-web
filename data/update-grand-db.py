@@ -176,7 +176,7 @@ def main():
             files_bar.text(f'Grand star count so far: {grand_total_rows:,} / {total_rows_in_sources:,}') 
             # files_bar.fin
 
-        hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources}') 
+        hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources:,}') 
 
         row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
         grand_total_rows = row_count
