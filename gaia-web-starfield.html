@@ -288,15 +288,25 @@ let tour_targets = [
     [  62, 130,   50],
     [ 222, 336, 178],
     [ -366, 434, 203],
-    [ 489, 730,  553],
+    [ -213, 438, -385],
+//    [ ],
+    [ 489, 730,  553], // <- is ths really something?
     [ 515, 340, 1055],
     [ 907, 779, 1102],
     [ 125, 1219, -130],
     [ 144.4, 1113.5, 53.8 ],
+    [ 136, 1254, -122],
     [ -266.2, 1239.2,1100.6 ],
     [ -2176.2, -4843.8, -2653.4 ],
     [ 3618.0, 2559.1, 6839.6 ], // Maybe globular cluster?
     /*
+    [ ],
+    [ ],
+    [ ],
+    [ ],
+    [ ],
+    [ ],
+    [ ],
     [ ],
     [ ],
     [ ],
@@ -383,8 +393,93 @@ function add_nebulae_to_scene( scene, nebulae_data) {
 
         // Transform image to cubes
         var pixel
+        var c;
+        var x, y, z;
+        var actually_added = 0;
+        var stars_geometry = new THREE.BufferGeometry();
+        
+        // var amount = cube_data.length
+        // const positions = new Float32Array( );
+        // const colors = new Float32Array( );
+        // const sizes = new Float32Array( );
+        const positions = [];
+        const colors = [];
+        const sizes = [];
+
         for (var y = 1; y < pic.height; y++) {
             for (var z = 1; z < pic.width; z++) {
+                pixel = c.getImageData( z, y, 1, 1).data;
+                /*
+                Yeah cubes without shader language optimization is not the way forward
+                i.e. displaying a few hundred cubes slows it all down to a crawl.
+                It's not impossible, see here:
+                https://codepen.io/zadvorsky/pen/mwqQaJ
+                But will require much more study.
+                */
+                /*
+                var cube = new THREE.Mesh(
+                new THREE.BoxGeometry( 1, 1, 1),
+                new THREE.MeshBasicMaterial({
+                    // color: Math.random() * 0x0000FF, // + 0x000080,
+                    color: 0x0000FF,
+                    // color: 0x8888AA,
+                    transparent: true,
+                    // opacity: Math.random() * 0.1,
+                    opacity: 0.1,
+                })
+                );
+                
+                cube.position.x = 50
+                cube.position.y = 50 + pic.height - y
+                cube.position.z = 100 + z
+                // cube.material.opacity = 0.3
+                // cube.material.color = Math.random() * 0x000080 + 0x606080,
+                // cube.material.color = new THREE.Color()
+                cube.material.opacity = 0.3; // * (x+y+z)/30
+                // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                pixel = c.getImageData( z, y, 1, 1).data;
+                cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
+                // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+                // console.log('cube: ', cube)
+                scene.add(cube);
+                */
+                x = 50
+                positions.push(x)
+                positions.push(pic.height - y)
+                positions.push(z)
+                colors.push( pixel[0] / 256)
+                colors.push( pixel[1] / 256)
+                colors.push( pixel[2] / 256)
+                sizes.push( 15)
+
+
+                // Add depth cubes/pixels
+                // var depth = parseInt( 0.25 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+                
+                // Depth based on pixel value
+                // var depth = parseInt( 0.5 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+
+                // Depth based on it being a spheroid
+                var depth = 0.5 * parseInt(
+                    Math.sqrt(
+                        Math.cos( 
+                        Math.PI * Math.abs( 0.5*pic.height - y) / pic.height
+                    )**2
+                    *
+                    Math.sin( 
+                        Math.PI * Math.abs( 0.5*pic.width - x) / pic.width
+                    )**2
+                    )
+                    * pic.width
+                )
+
+                console.log( 'depth', depth)
+
+
+                var dimm_factor = 1;
+                var depth_x = 0;
+                for (var x = -depth; x < depth; x++) {
+                    /*
                     var cube = new THREE.Mesh(
                     new THREE.BoxGeometry( 1, 1, 1),
                     new THREE.MeshBasicMaterial({
@@ -396,53 +491,76 @@ function add_nebulae_to_scene( scene, nebulae_data) {
                         opacity: 0.1,
                     })
                     );
-                    cube.position.x = 50
+                    cube.position.x = 50 + x
                     cube.position.y = 50 + pic.height - y
                     cube.position.z = 100 + z
-                    // cube.material.opacity = 0.3
-                    // cube.material.color = Math.random() * 0x000080 + 0x606080,
-                    // cube.material.color = new THREE.Color()
-                    cube.material.opacity = 0.3; // * (x+y+z)/30
-                    pixel = c.getImageData( z, y, 1, 1).data;
+                    */
+                    depth_x = 50 + x
+                    dimm_factor = (1 - Math.abs( x / depth)) ** 3
+                    if (dimm_factor < 0.1) continue;
+                    /*
+                    // cube.material.opacity = 0.3 * dimm_factor
+                    // pixel = c.getImageData( z, y, 1, 1).data;
                     // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
                     cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
                     // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
                     // console.log('cube: ', cube)
                     scene.add(cube);
+                    */
+                    positions.push(depth_x)
+                    positions.push(pic.height - y)
+                    positions.push(z)
+                    colors.push( pixel[0] / 256)
+                    colors.push( pixel[1] / 256)
+                    colors.push( pixel[2] / 256)
+                    // colors.push( dimm_factor * pixel[0] / 256)
+                    // colors.push( dimm_factor * pixel[1] / 256)
+                    // colors.push( dimm_factor * pixel[2] / 256)
+                    sizes.push( dimm_factor * 5)
 
-                    // Add depth cubes
-                    var depth = parseInt( 0.25 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
-                    var dimm_factor = 1;
-                    for (var x = -depth; x < depth; x++) {
-                        var cube = new THREE.Mesh(
-                        new THREE.BoxGeometry( 1, 1, 1),
-                        new THREE.MeshBasicMaterial({
-                            // color: Math.random() * 0x0000FF, // + 0x000080,
-                            color: 0x0000FF,
-                            // color: 0x8888AA,
-                            transparent: true,
-                            // opacity: Math.random() * 0.1,
-                            opacity: 0.1,
-                        })
-                        );
-                        cube.position.x = 50 + x
-                        cube.position.y = 50 + pic.height - y
-                        cube.position.z = 100 + z
-                        dimm_factor = (1 - Math.abs( x / depth))
-                        cube.material.opacity = 0.3 * dimm_factor
-                        // pixel = c.getImageData( z, y, 1, 1).data;
-                        // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
-                        cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
-                        // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
-                        // console.log('cube: ', cube)
-                        scene.add(cube);
-
-                    }
-
+                }
+                
 
             
             }
-        }    
+        }
+
+        // Arrays have now been populated with x,y,z and color info
+        console.log( positions, colors)
+        stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( new Float32Array(sizes), 1 ) );
+        stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( positions), 3 ) );
+        stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( new Float32Array(colors), 3 ) );
+
+        const point_material = new THREE.ShaderMaterial( {
+            uniforms: {
+                color: { value: new THREE.Color( 0xffffff ) },
+                // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+                // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
+                pointTexture: { value: new THREE.TextureLoader().load( 'images/cloud1.png' ) }
+
+            },
+            vertexShader: document.getElementById( 'vertexshader' ).textContent,
+            fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+
+            // blending: THREE.AdditiveBlending, <- Makes nebula way too bright
+            // blending: THREE.Normal, // <- is OK
+            // blending: THREE.Multiply, <- Maybe not so good as causes dimming from some angles
+            depthTest: false,
+            transparent: true,
+            vertexColors : true
+            // flatShading: true
+
+        } );
+        var points = new THREE.Points( stars_geometry, point_material );
+        scene.add( points );
+
+
+
+
+
+
+
+
 }
     // document.getElementById("output").innerHTML = hex; 
 
@@ -602,6 +720,8 @@ function add_cubes_to_scene( scene, cube_data) {
         fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
 
         blending: THREE.AdditiveBlending,
+        // blending: THREE.Normal,
+        // blending: THREE.MultiplyBlending,
         depthTest: false,
         transparent: true,
         vertexColors : true
@@ -611,8 +731,8 @@ function add_cubes_to_scene( scene, cube_data) {
 
     var points = new THREE.Points( stars_geometry, point_material );
     scene.add( points );
-    return amount;
     
+    // return amount;
     // return actually_added;
     // for (var y = 1; y < 10; y++) {
     //     for (var x = 1; x < 10; x++) {
@@ -856,7 +976,8 @@ function add_stars_to_scene( scene, star_coords) {
             vertexShader: document.getElementById( 'vertexshader' ).textContent,
             fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
 
-            blending: THREE.AdditiveBlending,
+            // blending: THREE.AdditiveBlending,
+            blending: THREE.NormalBlending,
             depthTest: false,
             transparent: true,
             vertexColors : true
@@ -1414,6 +1535,7 @@ function reload_all_stars() {
     ])
 
     // add_cubes_to_scene( scene, [])
+
     // add_nebulae_to_scene( scene, [])
     
     rendered_sky_elements = []
