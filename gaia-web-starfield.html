@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>GAIA-Web 3D Starfield v0.2</title>
+		<title>GAIA-Web 3D Starfield v0.21</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="three.js/main.css">
@@ -157,7 +157,7 @@ Please be patient as star data is loaded in the background.
 		<!-- The main index of all sky patch elements, which basically based on this file:
             http://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/_MD5SUM.txt
          -->
-        <script type="text/javascript" src="data/gaia-web-sky-elements.js"></script>
+        <script type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
         <script type="module">
 // Uhm yeah the HTML ain't gonna dictate our indentation. Who does it think it is!?!?
 import * as THREE from 'three';
@@ -168,6 +168,97 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 // import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// Courtesy of: https://codepen.io/hootstheowl/pen/xOQVQg
+// class CubeWebGL {
+//   constructor(props = {}) {
+//     Object.assign(this, {
+//       // set variable settings
+//       container: props.container || document.body,
+//       fps: props.fps || 30,
+//       theta: props.theta || 0.1,
+//       radius: props.radius || 600,
+//       opacity: props.opacity || 0.2,
+//       count: props.count || 150,
+//       palette: props.palette || null,
+//       // containers for ThreeJS animation
+//       then: Date.now(),
+//       camera: null,
+//       scene: null,
+//       renderer: null,
+//     });
+//     // // let's go!
+//     // this.init();
+//     // this.animate();
+//     // document.addEventListener(
+//     //   'mousedown', this.getIntersect.bind(this), false
+//     // );
+//   }
+//   getIntersect(e) {
+//     const raycaster = new THREE.Raycaster();
+//     const mouse = new THREE.Vector3();
+//     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+// 	  mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+//     // update the picking ray with the camera and mouse position	
+// 	  raycaster.setFromCamera( mouse, this.camera );	
+//     // calculate objects intersecting the picking ray
+//     const intersects = raycaster.intersectObjects( this.scene.children );
+//     console.log(intersects)
+//   }
+//   addCube() {
+//     const { palette, opacity } = this;
+//     if (Array.isArray(palette)) {
+//       const cubeColor = palette[Math.floor(
+//         Math.random() * palette.length
+//       )];
+//     }
+//     const cube = new THREE.Mesh(
+//       new THREE.BoxGeometry(2.5, 2.5, 2.5),
+//       new THREE.MeshBasicMaterial({
+//         color: Math.random() * 0x808008 + 0x808080,
+//         transparent: true,
+//         opacity,
+//       })
+//     );
+//     cube.position.x = this.generatePosition();
+//     cube.position.y = this.generatePosition();
+//     cube.position.z = this.generatePosition();
+//     cube.scale.x= cube.scale.y = cube.scale.z = Math.random() * 45;
+//     this.scene.add(cube);
+//   }
+
+
+
+// var menu = {
+//     data_set = 'star_density': '',
+//     prev_data_set = 'star_density',
+//   vely: 0,
+//   camera: {
+//     speed: 0.0001
+//   },
+//   stop: function() {
+//     this.velx = 0;
+//     this.vely = 0;
+//   },
+//   reset: function() {
+//     this.velx = 0.1;
+//     this.vely = 0.1;
+//     camera.position.z = 75;
+//     camera.position.x = 0;
+//     camera.position.y = 0;
+//     cube.scale.x = 1;
+//     cube.scale.y = 1;
+//     cube.scale.z = 1;
+//     cube.material.wireframe = true;
+//   }
+// };
+
+
+
+let data_set = 'star_density'
+let prev_data_set = 'star_density'
+let data_set_type = 'cubes'
+let data_set_xyz_multiplier = 100
 
 let moveForward = false;
 let moveBackward = false;
@@ -190,25 +281,29 @@ let tour_speed = 0;
 let tour_target_arrived = false;
 let tour_time_at_target = 0;
 let tour_prev_update = 0;
-let tour_orbit_radius = 20; //ly
+let tour_orbit_radius = 25; //ly
 let tour_targets = [
+    /*
+    */
     [  62, 130,   50],
-    [ 489, 730,  553],
+    [ 222, 336, 178],
     [ -366, 434, 203],
-    [ 515, 345, 1055],
+    [ 489, 730,  553],
+    [ 515, 340, 1055],
     [ 907, 779, 1102],
     [ 125, 1219, -130],
     [ 144.4, 1113.5, 53.8 ],
     [ -266.2, 1239.2,1100.6 ],
     [ -2176.2, -4843.8, -2653.4 ],
     [ 3618.0, 2559.1, 6839.6 ], // Maybe globular cluster?
-    // [ ],
-    // [ ],
-    // [ ],
-    // [ ],
+    /*
+    [ ],
+    [ ],
+    [ ],
+    */
     ];
 
-let tour_orbit_angle;
+let tour_orbit_angle = 0;
 let tour_orbit_dec = 0;
 let tour_orbit_start_x;
 let tour_orbit_start_y;
@@ -230,6 +325,11 @@ const camera_vector = new THREE.Vector3();
 const color = new THREE.Color();
 let initial_scene_reloaded = false;
 
+var spinner = ['-', '\\', '|', '/']
+let statusline = 'Date being loaded, please wait...'
+let available_elements = []
+for (var i = 0; i < 100; i++) available_elements.push( i);
+
 
 const sprite = new THREE.TextureLoader().load( 'three.js/textures/sprites/disc.png' );
 
@@ -246,6 +346,8 @@ var star_max_dist = 10**5;
 var star_max_dist = 10**3;
 var all_stars = {};
 var rendered_sky_elements = [];
+var total_stars_in_scene = 0;
+var total_cubes_in_scene = 0;
 
 var loading_lock = false;
 
@@ -255,6 +357,294 @@ var lightyear_p_parsec = 3.261563777
 
 init();
 animate();
+
+function add_nebulae_to_scene( scene, nebulae_data) {
+
+    var canvas = document.createElement("canvas");
+
+    var pic = new Image(); 
+    pic.src = 'nebulae/out.png'; 
+    pic.onload = function() {
+
+        canvas.width = pic.width;
+        canvas.height = pic.height;
+        var ctx = canvas.getContext("2d");
+
+        ctx.drawImage(pic, 0, 0);
+
+        var c = canvas.getContext('2d');
+        var p = c.getImageData(107, 107, 1, 1).data;
+        var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+        console.log( 'colors: ', p, hex)
+
+        var p = c.getImageData( 80, 80, 1, 1).data;
+        var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+        console.log( 'colors: ', p, hex)
+
+        // Transform image to cubes
+        var pixel
+        for (var y = 1; y < pic.height; y++) {
+            for (var z = 1; z < pic.width; z++) {
+                    var cube = new THREE.Mesh(
+                    new THREE.BoxGeometry( 1, 1, 1),
+                    new THREE.MeshBasicMaterial({
+                        // color: Math.random() * 0x0000FF, // + 0x000080,
+                        color: 0x0000FF,
+                        // color: 0x8888AA,
+                        transparent: true,
+                        // opacity: Math.random() * 0.1,
+                        opacity: 0.1,
+                    })
+                    );
+                    cube.position.x = 50
+                    cube.position.y = 50 + pic.height - y
+                    cube.position.z = 100 + z
+                    // cube.material.opacity = 0.3
+                    // cube.material.color = Math.random() * 0x000080 + 0x606080,
+                    // cube.material.color = new THREE.Color()
+                    cube.material.opacity = 0.3; // * (x+y+z)/30
+                    pixel = c.getImageData( z, y, 1, 1).data;
+                    // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                    cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
+                    // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+                    // console.log('cube: ', cube)
+                    scene.add(cube);
+
+                    // Add depth cubes
+                    var depth = parseInt( 0.25 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+                    var dimm_factor = 1;
+                    for (var x = -depth; x < depth; x++) {
+                        var cube = new THREE.Mesh(
+                        new THREE.BoxGeometry( 1, 1, 1),
+                        new THREE.MeshBasicMaterial({
+                            // color: Math.random() * 0x0000FF, // + 0x000080,
+                            color: 0x0000FF,
+                            // color: 0x8888AA,
+                            transparent: true,
+                            // opacity: Math.random() * 0.1,
+                            opacity: 0.1,
+                        })
+                        );
+                        cube.position.x = 50 + x
+                        cube.position.y = 50 + pic.height - y
+                        cube.position.z = 100 + z
+                        dimm_factor = (1 - Math.abs( x / depth))
+                        cube.material.opacity = 0.3 * dimm_factor
+                        // pixel = c.getImageData( z, y, 1, 1).data;
+                        // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                        cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
+                        // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+                        // console.log('cube: ', cube)
+                        scene.add(cube);
+
+                    }
+
+
+            
+            }
+        }    
+}
+    // document.getElementById("output").innerHTML = hex; 
+
+
+
+
+    // let img = new (window as any).Image();
+    // img.crossOrigin = `Anonymous`;
+
+    // img.src = "nebulae/out.png";
+    // img.onload = function () {
+    //     canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
+    //     canvas.width = img.width;
+    //     canvas.height = img.height;
+    //     let ctx: CanvasRenderingContext2D = canvas.getContext(
+    //         "2d"
+    //     ) as CanvasRenderingContext2D;
+    //     ctx.drawImage(img, 0, 0);
+
+    //     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    //     data = imgData.data;
+    //     canvas.addEventListener("mousemove", (ev) => {
+    //         //as the mouse moves around the image
+    //         let cols = canvas.width;
+    //         let { offsetX, offsetY } = ev;
+    //         //call the method to get the r,g,b,a values for current pixel
+    //         let c = extractPixelColor(cols, offsetY, offsetX);
+    //         //build a colour string for 
+    //         let colour = `rgb(${c.red}, ${c.green}, ${c.blue})`} ;
+    //         let hexCode = `#${[c.red, c.green, c.blue]
+    //             .map((x) => x.toString(16).padStart(2, "0"))
+    //             .join("")}`;
+            
+    //     });
+    // };
+
+
+}
+
+
+function add_cubes_to_scene( scene, cube_data) {
+    /*
+    theta: props.theta || 0.1,
+      radius: props.radius || 600,
+      opacity: props.opacity || 0.2,
+      count: props.count || 150,
+      palette: props.palette || null,
+    //   */  
+    //   const { palette, opacity } = this;
+    // if (Array.isArray(palette)) {
+    //   const cubeColor = palette[Math.floor(
+    //     Math.random() * palette.length
+    //   )];
+    // }
+
+    // const cube = new THREE.Mesh(
+    //   new THREE.BoxGeometry( 50, 50, 50),
+    //   new THREE.MeshBasicMaterial({
+    //     // color: Math.random() * 0x000080 + 0x808080,
+    //     color: 0x8888AA,
+    //     transparent: true,
+    //     opacity: 0.2,
+    //   })
+    // );
+
+
+    // console.log( cube_data)
+    var c;
+    var x, y, z;
+    var actually_added = 0;
+    for (var cube_idx = 0; cube_idx < cube_data.length; cube_idx++) {
+        // var cube = new THREE.Mesh(
+        //     // new THREE.BoxGeometry( 49, 49, 49),
+        //     new THREE.BoxGeometry( 1* data_set_xyz_multiplier, 1* data_set_xyz_multiplier, 1* data_set_xyz_multiplier),
+        //     new THREE.MeshBasicMaterial({
+        //     // color: Math.random() * 0x0000FF, // + 0x000080,
+        //     color: 0x8888AA,
+        //     // transparent: true,
+        //     // opacity: Math.random() * 0.1,
+        //     wireframe: true,
+        //     // opacity: 0.1,
+        // })
+        // );
+        // // Values were rounded, so move down each axis by half
+        // x = (cube_data[ cube_idx][0] - 0.5) * data_set_xyz_multiplier
+        // y = (cube_data[ cube_idx][1] - 0.5) * data_set_xyz_multiplier
+        // z = (cube_data[ cube_idx][2] - 0.5) * data_set_xyz_multiplier
+        // c = cube_data[ cube_idx][3]
+        // if (c < 0.05) continue;
+        // actually_added++;
+        // cube.position.x = x
+        // cube.position.y = y
+        // cube.position.z = z
+        // cube.material.color.setRGB( c, c, c)
+        // scene.add(cube);
+
+        // var dotGeometry = new THREE.BufferGeometry();
+        // dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( 
+        //     [ x, y, z], 3 
+        // ) );
+        // var dotMaterial = new THREE.PointsMaterial( { size: 0.3  * data_set_xyz_multiplier, color: 0x00ff00 } );
+        // dotMaterial.color.setRGB( c, c, c)
+        // var dot = new THREE.Points( dotGeometry, dotMaterial );
+        // scene.add( dot );
+
+        // cube.material.opacity = 0.3
+        // cube.material.color = Math.random() * 0x000080 + 0x606080,
+        // cube.material.color = new THREE.Color()
+        // cube.material.opacity = 0.3 * (x+y+z)/30
+        //, // + 0x000080,
+
+    }
+
+    var stars_geometry = new THREE.BufferGeometry();
+    var amount = cube_data.length
+    const positions = new Float32Array( amount * 3 );
+    const colors = new Float32Array( amount * 3 );
+    const sizes = new Float32Array( amount);    
+    
+    // const color = new THREE.Color( 0xff00ff );
+    for (var i = 0; i < amount; i++) {
+        x = (cube_data[ i][0] - 0.5) * data_set_xyz_multiplier
+        y = (cube_data[ i][1] - 0.5) * data_set_xyz_multiplier
+        z = (cube_data[ i][2] - 0.5) * data_set_xyz_multiplier
+        c = cube_data[  i][3]
+        positions[i*3+0] = x
+        positions[i*3+1] = y
+        positions[i*3+2] = z
+        colors[i*3+0] = c
+        colors[i*3+1] = c
+        colors[i*3+2] = c
+        
+        // positions[i*3+1] = bucket['positions'][i][1];
+        // positions[i*3+2] = bucket['positions'][i][2];
+        // console.log( 'ALERT 5', amount, bucket['positions'][i], positions[i*3], bucket['positions'][i][0])
+        // color.toArray( colors, i * 3 );
+        // colors.push( c * 256, c * 256, c * 256)
+        sizes[i] = (c**2) * data_set_xyz_multiplier * 20
+    }    
+    
+    // for (var i = 0; i < cube_data.length; cube_idx++) sizes[i] = cube_data[ i][3] * data_set_xyz_multiplier / 2
+
+    // for (var i = 0; i < amount; i++) sizes[i] = size;
+    stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
+    stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+    stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
+
+    const point_material = new THREE.ShaderMaterial( {
+        uniforms: {
+            color: { value: new THREE.Color( 0xffffff ) },
+            // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+            // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
+            pointTexture: { value: new THREE.TextureLoader().load( 'images/star-glare6.png' ) }
+
+        },
+        vertexShader: document.getElementById( 'vertexshader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        transparent: true,
+        vertexColors : true
+        // flatShading: true
+
+    } );
+
+    var points = new THREE.Points( stars_geometry, point_material );
+    scene.add( points );
+    return amount;
+    
+    // return actually_added;
+    // for (var y = 1; y < 10; y++) {
+    //     for (var x = 1; x < 10; x++) {
+    //         for (var z = 1; z < 10; z++) {
+    //             var cube = new THREE.Mesh(
+    //                 // new THREE.BoxGeometry( 49, 49, 49),
+    //                 new THREE.BoxGeometry( 50, 50, 50),
+    //                 new THREE.MeshBasicMaterial({
+    //                 color: Math.random() * 0x0000FF, // + 0x000080,
+    //                 // color: 0x8888AA,
+    //                 // transparent: true,
+    //                 // opacity: Math.random() * 0.1,
+    //                 wireframe: true,
+    //                 // opacity: 0.1,
+    //             })
+    //             );
+    //             cube.position.x = x * 50 + 100
+    //             cube.position.y = y * 50
+    //             cube.position.z = z * 50
+    //             // cube.material.opacity = 0.3
+    //             // cube.material.color = Math.random() * 0x000080 + 0x606080,
+    //             // cube.material.color = new THREE.Color()
+    //             // cube.material.opacity = 0.3 * (x+y+z)/30
+    //             cube.material.color.setRGB( ((30 - (x+y+z))/30)**4, ((10-z)/10)**4, ((x+y+z)/30)**4), // + 0x000080,
+    //             // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+    //             // console.log('cube: ', cube)
+    //             scene.add(cube);
+    //         }
+        
+    //     }
+    // }
+}
 
 
 function add_stars_to_scene( scene, star_coords) {
@@ -297,7 +687,7 @@ function add_stars_to_scene( scene, star_coords) {
         
         // if (distance > 2500) continue;
         if ( stars_filter == 'da_hood')
-            if (distance > 2000) continue;
+            if ((distance > 3000) || (abs_magnitude > 5)) continue;
 
         if ( stars_filter == 'galactic')
             if ((distance > 70000) || (abs_magnitude > -3)) continue;
@@ -330,10 +720,17 @@ function add_stars_to_scene( scene, star_coords) {
         5 11
         */
 
+        /*
         // Aim to make the stars between 0.2 and 3 in size to ensure reasonable
         // spread over the absolute magitude bucket sized above
         var star_size = parseInt( 20 - (parseInt(abs_magnitude) + 10)) / 5
         if (star_size > 3) star_size = 3;
+        if (star_size < 0.2) star_size = 0.2;
+        */
+        // With the shader material it's better to make it size 0 - 10
+        // spread over the absolute magitude bucket sized above
+        var star_size = (10 - parseInt(abs_magnitude)) / 2
+        if (star_size > 10) star_size = 10;
         if (star_size < 0.2) star_size = 0.2;
 
         // initialize bucket if needed:
@@ -444,13 +841,17 @@ function add_stars_to_scene( scene, star_coords) {
         stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
         // var sizes = Array( bucket['positions'].length).fill( size)
         const sizes = new Float32Array( amount);
-        for (var i = 0; i < amount; i++) sizes[i] = size * 3;
+        // for (var i = 0; i < amount; i++) sizes[i] = size * 3;
+        for (var i = 0; i < amount; i++) sizes[i] = size;
         stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
 
         const point_material = new THREE.ShaderMaterial( {
             uniforms: {
                 color: { value: new THREE.Color( 0xffffff ) },
-                pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+                // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+                // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
+                pointTexture: { value: new THREE.TextureLoader().load( 'images/star-glare6.png' ) }
+
             },
             vertexShader: document.getElementById( 'vertexshader' ).textContent,
             fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
@@ -504,7 +905,11 @@ function add_stars_to_scene( scene, star_coords) {
 
 // Based on SO answers pointing to most recent JS standards and usage. What do I know.
 function loadScript (scene, sky_element, async = false, type = "text/javascript") {
-	var filename = './data/' + sky_element + '.js';
+	// var filename = './data/' + sky_element + '.js';
+    // New data set format:
+    // url: data/set-star_density/8.js
+
+	var filename = './data/set-' + data_set + '/' + sky_element + '.js';
 	var FILE_URL = filename;
 
 	if (loading_lock) {
@@ -523,14 +928,17 @@ function loadScript (scene, sky_element, async = false, type = "text/javascript"
             scriptEle.addEventListener("load", (ev) => {
                 resolve({ status: true });
                 // Add the data to all_stars[] where it will be checked and read from later
-				all_stars[sky_element] = stars;
+				// all_stars[sky_element] = stars;
+				all_stars[sky_element] = data;
 				loading_lock = false;
 
                 var num_loaded = Object.keys( all_stars).length;
                 var total = available_elements.length
 				console.log("Parsed file " + num_loaded + ' of ' + total
                     + ' (' + sky_element + '): #'
-                    + all_stars[sky_element].length + " stars' data loaded.");
+                    + all_stars[sky_element].length + " " + data_set_type + "' data loaded.");
+                
+
 
 				// add_stars_to_scene( scene, stars)
 				// console.log('DEBUG3', star_max_dist)
@@ -631,6 +1039,8 @@ function init() {
     const axesHelper = new THREE.AxesHelper( star_max_dist );
     scene.add( axesHelper );
 
+
+
     var rendered_sky_elements = []
 
     const interval1 = setInterval(function() {
@@ -661,41 +1071,115 @@ function init() {
 
     }, 2000);
 
-    const gui = new GUI();
 
-    // TODO: build gui option for each params option
+    var gui_drop_down = {}
 
-    gui.add( params, 'option 1' ).name( 'Disable distance dimming (sizeAttentuation)' ).onChange( function ( value ) {
+    for (const [key, value] of Object.entries(gaia_web_datasets)) {
+    // for (const name in gaia_web_datasets) {
+        // console.log( `${key}: ${value}` );
+        gui_drop_down[key] = key
+    }
+    console.log( gui_drop_down );
 
-        // controls.dispose();
+    const gui = new GUI( { title: 'Dataset' });
+    
+    gui.add( { x: Object.keys(gaia_web_datasets)[0] }, 'x', gui_drop_down ).name( 'Dataset' ).onChange( function ( value ) {
+        if ( value != prev_data_set) {
+            data_set = value
+            data_set_type = gaia_web_datasets[value]
+            reload_all_stars()
+        }
+        prev_data_set = data_set
+    })
+        // gui.add( { x: 2 }, 'x', { Label1: 0, Label2: 1, Label3: 2 } ).name( 'Dataset' );
+    // make( { title: 'Options' }, gui => {
 
-        // createControls( value ? orthographicCamera : perspectiveCamera );
-        // alert('hi')
-        // To set items still loading in right
-        global_sizeAttenuation = value ? false : true;
-        // console.log( "global attentuation", global_sizeAttenuation);
+        // gui.add( { Options: 'a' }, 'Options', [ 'a', 'b', 'c' ] ).disable().enable();
+	    // gui.add( { Options: 'a' }, 'Options', [ 'a', 'b', 'c' ] ).disable();
+        // gui.add( { x: 0 }, 'x', [ 0, 1, 2 ] ).name( 'Array' );
+        // gui.add( { x: {} }, 'x', [ 0, 1, 2 ] ).name( 'Invalid initial' );
+        // gui.add( { x: {} }, 'x', { Label1: 0, Label2: 1, Label3: 2 } ).name( 'Invalid initial' );
+        // gui.add( { func() { console.log( 'hi' ); } }, 'func' ).name( 'Function' ).disable().enable();
+	    // gui.add( { func() { console.log( 'hi' ); } }, 'func' ).name( 'Function' ).disable();
+        // const longString = 'Anoptionorvaluewithaproblematicallylongname';
+        // gui.add( { x: longString }, 'x', [ longString, 1, 2 ] ).name( 'Long names' );
+    // } );
 
-        scene.traverse( function( node ) {
-            if ( node instanceof THREE.Points ) {
-                // console.log( "toggling attentuation", node.material.sizeAttenuation)
-                // insert your code here, for example:
-                // console.log( node);
-                node.material.sizeAttenuation = global_sizeAttenuation;
-                node.material.needsUpdate = true;
-            }
 
-        } );
-    } );
+    // for (var idx = 0; idx < gaia_web_datasets.length; idx++)
+    //     console.log( gaia_web_datasets[idx])
+    // for (var idx = 0; idx < gaia_web_datasets.length; idx++)
+        // console.log( gaia_web_datasets[idx])
 
-// function toggle_global_sizeAttenuation
 
-    gui.add( params, 'orthographicCamera' ).name( 'use orthographic' ).onChange( function ( value ) {
+//     gui.add( params, '' ).name( 'Disable distance dimming (sizeAttentuation)' ).onChange( function ( value ) {
 
-        // controls.dispose();
+//         // controls.dispose();
 
-        // createControls( value ? orthographicCamera : perspectiveCamera );
+//         // createControls( value ? orthographicCamera : perspectiveCamera );
+//         // alert('hi')
+//         // To set items still loading in right
+//         global_sizeAttenuation = value ? false : true;
+//         // console.log( "global attentuation", global_sizeAttenuation);
 
-    } );
+//         scene.traverse( function( node ) {
+//             if ( node instanceof THREE.Points ) {
+//                 // console.log( "toggling attentuation", node.material.sizeAttenuation)
+//                 // insert your code here, for example:
+//                 // console.log( node);
+//                 node.material.sizeAttenuation = global_sizeAttenuation;
+//                 node.material.needsUpdate = true;
+//             }
+
+//         } );
+//         } );
+
+//     // const cubeFolder = gui.addFolder('Cubes (averaged values)')
+//     // cubeFolder.add(cube.rotation, 'x', 0, Math.PI * 2)
+//     // cubeFolder.add(cube.rotation, 'y', 0, Math.PI * 2)
+//     // cubeFolder.add(cube.rotation, 'z', 0, Math.PI * 2)
+//     // cubeFolder.open()
+
+//     // const cameraFolder = gui.addFolder('Camera')
+//     // cameraFolder.add(camera.position, 'z', 0, 10)
+//     // cameraFolder.open()
+
+
+
+
+//     // TODO: build gui option for each params option
+
+//     gui.add( params, 'option 1' ).name( 'Disable distance dimming (sizeAttentuation)' ).onChange( function ( value ) {
+
+//         // controls.dispose();
+
+//         // createControls( value ? orthographicCamera : perspectiveCamera );
+//         // alert('hi')
+//         // To set items still loading in right
+//         global_sizeAttenuation = value ? false : true;
+//         // console.log( "global attentuation", global_sizeAttenuation);
+
+//         scene.traverse( function( node ) {
+//             if ( node instanceof THREE.Points ) {
+//                 // console.log( "toggling attentuation", node.material.sizeAttenuation)
+//                 // insert your code here, for example:
+//                 // console.log( node);
+//                 node.material.sizeAttenuation = global_sizeAttenuation;
+//                 node.material.needsUpdate = true;
+//             }
+
+//         } );
+//     } );
+
+// // function toggle_global_sizeAttenuation
+
+//     gui.add( params, 'orthographicCamera' ).name( 'use orthographic' ).onChange( function ( value ) {
+
+//         // controls.dispose();
+
+//         // createControls( value ? orthographicCamera : perspectiveCamera );
+
+//     } );
 
     //
 
@@ -906,30 +1390,39 @@ function toggle_global_sizeAttenuation() {
 }
 
 function reload_all_stars() {
-    if (stars_filter == prev_stars_filter) {
-        console.log( 'already watching filter ' + stars_filter)
-        return 0;
-    }
+    // if (stars_filter == prev_stars_filter) {
+    //     console.log( 'already watching filter ' + stars_filter)
+    //     return 0;
+    // }
     
-    if ((stars_filter == 'galactic') && (global_sizeAttenuation == true))
-        toggle_global_sizeAttenuation();
+    // if ((stars_filter == 'galactic') && (global_sizeAttenuation == true))
+    //     toggle_global_sizeAttenuation();
+
 
     // Reset scene
     scene.remove.apply(scene, scene.children);
     all_stars = {}
+    total_stars_in_scene = 0
+    total_cubes_in_scene = 0
+    // for (var i = 0; i < 2; i++) available_elements.push( i);
 
     // Add Sol
     add_stars_to_scene( scene, [
-    [ 0, 0, 0, 1, -10],
+        [ 0, 0, 0, 1, -10],
     // [ 5, 5, 5, 0.5, -10],
     // [ 10, 20, 10, 2, -10]
     ])
+
+    // add_cubes_to_scene( scene, [])
+    // add_nebulae_to_scene( scene, [])
     
     rendered_sky_elements = []
     console.log('Full data reload should occur automatically now...')
 
     // rendered_sky_elements = []
-    prev_stars_filter = stars_filter;
+    // prev_stars_filter = stars_filter;
+    prev_data_set = data_set
+
     initial_scene_reloaded = true;
 }
 
@@ -939,7 +1432,10 @@ function load_next_sky_element() {
     var all_stars_keys = Object.keys( all_stars)
     // console.log('DEBUG61', all_stars_keys)
     for (var index in available_elements) {
-        element = available_elements[index];
+        // element = available_elements[index];
+        // From now on elements will just be the numbers 0 to 99
+        // so that every data set consists of 100 files
+        element = index;
 
         if (! all_stars_keys.includes(element)) { 
             // console.log( 'Need to load element ' + element)
@@ -965,19 +1461,36 @@ function load_available_sky_elements() {
             // console.log( 'Need to parse element ' + element)
             // only parse 1 to save resources
             var total_stars = all_stars[ element].length;
-            var num_added = add_stars_to_scene( scene, all_stars[ element])
+            var num_added
+            if (data_set_type == 'cubes') {
+                num_added = add_cubes_to_scene( scene, all_stars[ element]);
+                total_cubes_in_scene += num_added
+            } else  {
+                num_added = add_stars_to_scene( scene, all_stars[ element]);
+                total_stars_in_scene += num_added
+            } 
 
             // Try to allow garbage collection to kick in else we
             // use way too much memory
             all_stars[ element] = 0;
             rendered_sky_elements.push( element)
-            console.log("Added " + num_added + '/' + total_stars + ' to 3D scene from element: '
-                    + element + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + ')');
+            console.log( "Added " + num_added + '/' 
+                + total_stars + ' to 3D scene from element: ' + element 
+                + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + '). '
+                + 'Total stars/cubes in scene: ' + total_stars_in_scene+'/'+total_cubes_in_scene);
+
+            // var spin = spinner[ rendered_sky_elements.length + Object.keys(all_stars)]
+            var total = rendered_sky_elements.length + Object.keys(all_stars).length
+            var spin = spinner [total % 4]
+            statusline = 'Loaded/parsed '
+                + Object.keys(all_stars).length + '/' + rendered_sky_elements.length 
+                + ' of ' + available_elements.length;
             // return 0
         } else {
             // console.log( 'Already parsed: ' + element)
             
         }
+        
     }
 }
 
@@ -989,6 +1502,7 @@ function tour_update( camera) {
     // console.log('tour busy', tour_busy)
 
     var easing;
+    var easing_time = 5000;
     if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
         tour_started = true;
         tour_busy = true;
@@ -996,6 +1510,30 @@ function tour_update( camera) {
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
 
+
+            
+            tour_stops = [
+                [t[0] - tour_orbit_radius, t[1], t[2]]
+            ]
+
+            /*
+            Calculate a nice pseudo fly around orbit. It's not so much an actual orbit
+            as it is a step-wise walk around the edges of a circle comprising pizza
+            slice triangles. Therefore, flying around stars should now start to 
+            make you feel hungry ;).
+            */
+            var orbit_step_size = 0.2;
+            var xdiff, ydiff, zdiff;
+            var cur_radius = tour_orbit_radius;
+            for (var i = orbit_step_size; i < Math.PI * 6; i += 0.2) {
+                cur_radius = tour_orbit_radius + Math.sin(i * 0.2) * 0.6 * tour_orbit_radius;
+                xdiff = t[0] - Math.cos(i) * cur_radius;
+                ydiff = t[1] + Math.sin(i * 0.4) * 0.8 * cur_radius;
+                zdiff = t[2] + Math.sin(i) * cur_radius;
+                tour_stops.push( [xdiff, ydiff, zdiff])
+            }
+            /*
+            // Go around the object along the edges of a cube. Boring and lame.
             tour_stops = [
                 [t[0] - tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
                 [t[0] + tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
@@ -1005,6 +1543,7 @@ function tour_update( camera) {
                 [t[0] - tour_orbit_radius, t[1] + tour_orbit_radius, t[2]  - tour_orbit_radius],
                 [t[0] - tour_orbit_radius, t[1] - tour_orbit_radius, t[2]  - tour_orbit_radius],
             ]
+            */
 
             // Pan camera to new object smoothly
             tour_object_panning = true
@@ -1016,10 +1555,12 @@ function tour_update( camera) {
 
             var angle_to = { x : t[0], y : t[1], z : t[2] };
 
-            console.log('ALERT1: start panning')
+            easing = TWEEN.Easing.Linear.None;
+            // easing = TWEEN.Easing.Sinusoidal.InOut
+            // console.log('ALERT1: start panning')
             var tween = new TWEEN.Tween(angle_from)
             .to( angle_to, 2000)
-            .easing( TWEEN.Easing.Sinusoidal.InOut)
+            .easing( easing)
             // .easing( TWEEN.Easing.Cubic.InOut)
             // .easing( TWEEN.Easing.Linear.None)            
             .onUpdate( function () {
@@ -1036,20 +1577,23 @@ function tour_update( camera) {
             .start();
 
         } else {
-            // easing = TWEEN.Easing.Linear.None;
-            easing = TWEEN.Easing.Sinusoidal.InOut
+            // Go faster and linear for the semi-circular orbital pizza slices calculated above
+            easing = TWEEN.Easing.Linear.None;
+            easing_time = 500; // ms
+
+            // easing = TWEEN.Easing.Sinusoidal.InOut; // Was used for cube lookaround
 
         }
         
         var from = { x: camera.position.x, y: camera.position.y, z: camera.position.z } 
 
         var ts = tour_stops.shift();
-        var to = { x : ts[0], y : ts[1], z : ts[2] };
-        console.log('ALERT2', tour_busy, tour_target_index, tour_stops.length, ts)
+        // console.log('ALERT2', tour_busy, tour_target_index, tour_stops.length, ts)
         
         // start the tween for the camera position
+        var to = { x : ts[0], y : ts[1], z : ts[2] };
         var tween = new TWEEN.Tween(from)
-            .to( to, 5000)
+            .to( to, easing_time)
             // .easing( TWEEN.Easing.Cubic.InOut)
             .easing( easing)            
             .onUpdate( function () {
@@ -1265,6 +1809,9 @@ function animate() {
         + camera_vector.x.toFixed(2) + ', ' 
         + camera_vector.y.toFixed(2) + ', ' 
         + camera_vector.z.toFixed(2)
+        + '\nTotal stars/cubes in scene: ' 
+        + '  ' + total_stars_in_scene+'/'+total_cubes_in_scene
+        + '\n' + statusline
         ;
 
 

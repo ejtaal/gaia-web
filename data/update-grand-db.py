@@ -10,19 +10,21 @@ def hm( msg, pre = '*'):
     else: msg = f"{CYAN}[{pre}] {msg}"
     print( f"{BOLD}{msg}{ENDC}")
     
-
+SOURCE_DB_PATH = "./source"
+GRAND_DB_FULLPATH = "./grand/Grand_gaia_source.sqlite"
+GRAND_DB_TABLENAME = 'grand_gaia_source'
 
 
 import glob
 import sqlite3
+import pandas as pd
 import traceback
 import sys
+import numpy as np
 
 from alive_progress import *
 config_handler.set_global( length=60, spinner='classic', enrich_print = False, file = sys.stderr, force_tty = True)
 
-sys.path.append('../')
-from gaia_web_include import *
 
 def get_sqlite3_count_star( db_filename, table_name, where_clause=''):
     conn = sqlite3.connect( db_filename)
@@ -109,76 +111,31 @@ def update_grand_db( grand_db, source_db):
     
     cnx.close()
 
-# Import statistics Library
-import statistics
-
-# Calculate middle values
-# print(statistics.median([1, 3, 5, 7, 9, 11, 13]))
-# print(statistics.median([1, 3, 5, 7, 9, 11]))
-# print(statistics.median([-11, 5.5, -3.4, 7.1, -9, 22])) 
-
-def write_bin_sets():
-    hm('Writing bin sets ...')
-    for bin_name in GAIAWEB_BIN_SETS.keys():
-        hm( f'... bin set {bin_name} ...')
-
-        # c = bigdb_conn.cursor()
-        b = GAIAWEB_BIN_SETS[bin_name]
-
-        bin_db_file = f'{BIN_DB_BASEPATH}/{bin_name}.sqlite'        
-
-        conn = sqlite3.connect( bin_db_file)
-        df = pd.read_sql_query( f'SELECT * FROM {bin_name}', conn)
-        values = df[ b['what_field']].to_list()
-        # print( values)
-        preview_array( sorted( values))
-        # If these don't vary much then use either, else use median?
-        print( 'median: ', statistics.median( values))
-        print( 'avg: ', statistics.mean( values))
-        minv = min( values)
-        maxv = max( values)
-        avg = statistics.mean( values)
-        print(df)
-        df[ b['what_field'] ] = (df[ b['what_field']] - minv) / (maxv - minv)
-        df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-        df.sort_values( 'dist', inplace=True, ignore_index=True)
-        # print( 'avg: ', statistics. ( values))
-        print(df)
-
-
-        if not os.path.exists( f'{SET_JS_BASEPATH}{bin_name}'):
-            os.mkdir( f'{SET_JS_BASEPATH}{bin_name}')
-
-
-        js_prefix = 'var data = '
-        df_write_gaia_set( bin_name, js_prefix, df, ['x','y','z',b['what_field']])
-
-def gen_data_set_index():
-    global GAIA_WEB_DATA_SET_INDEX
-    
-    all_data_sets = {}
-    
-    for n in GAIAWEB_DATA_SETS.keys():
-        all_data_sets[n] = 'stars'
-        # all_data_sets.append( [ n, 'stars'])
-
-    for n in GAIAWEB_BIN_SETS.keys():
-        all_data_sets[n] = 'cubes'
-        # all_data_sets.append( [ n, 'cubes'])
-    
-    
-    print( all_data_sets)
-    # print( np.array2string( all_data_sets))
-    check_before_write( GAIA_WEB_DATA_SET_INDEX, 'var gaia_web_datasets = ' + str(all_data_sets))
-    
-
 def main():
     
-    gen_data_set_index()
-    # exit(2)
+    
+    hm( "1. Checking all SQlite DB files and counting rows ...")
 
+    total_rows_in_sources = 0
 
-    hm('Writing regular sets ...')
+    SQlite_db_files=glob.glob( f"{SOURCE_DB_PATH}/GaiaSource_*.sqlite", recursive=False)
+    # print (SQlite_db_files)
+    # for sqlite_db in []:
+    files_bar = alive_it(SQlite_db_files)
+    for sqlite_db in files_bar:
+        # print( sqlite_db)
+        count_star = get_sqlite3_count_star( sqlite_db, 'gaia_source_filtered')
+        total_rows_in_sources += count_star
+        files_bar.text(f'Star count so far: {total_rows_in_sources:,}') 
+    hm(f'Total star count in sources: {total_rows_in_sources:,}') 
+    # exit(8)
+        # print('.', end='')
+        # for row in rows:
+        #     print(row)
+        # save_db_stars.to_sql( 'gaia_source_filtered', conn, if_exists='replace', index=False)
+    
+    # print( f'total_rows_in_sources = {total_rows_in_sources:,}')
+
     global GRAND_DB_FULLPATH
     global GRAND_DB_TABLENAME
     # GRAND_GAIA_SOURCE_DB = f"{SOURCE_DB_PATH}/GrandGaiaSource.sqlite"
@@ -187,129 +144,57 @@ def main():
     # total_rows_in_sources = 49426859
     # hm( f'total_rows_in_sources = {total_rows_in_sources:,}')
 
-    # grand_total_rows = 0
-    # try:
-    #     hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
-    #     row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-    #     grand_total_rows = row_count
-    # except:
-    #     exit(1)
-    #     pass
-    # finally:
-    #     # print( 'grand total: ', grand_total_rows)
-    #     pass
+    grand_total_rows = 0
+    try:
+        hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
+        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+        grand_total_rows = row_count
+    except:
+        exit(1)
+        pass
+    finally:
+        # print( 'grand total: ', grand_total_rows)
+        pass
 
-    # hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
+    # print( 'grand total: ', grand_total_rows)
 
-    bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
+    if total_rows_in_sources == grand_total_rows:
+        hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
+    else:
+        hm( f"Total star count in source DBs doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
 
-    for dataset_name in GAIAWEB_DATA_SETS.keys():
-        hm( f"  ... Gaia-web dataset {dataset_name} ...")
+        # hm('Updating the Grand DB ...')
+        hm( 'Attempting to fill data from latest files ...')
+    
+        files_bar = alive_it(SQlite_db_files)
+        for sqlite_db in files_bar:
+            stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+            if stars_added > 0:
+                row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+                grand_total_rows = row_count
+                hm( f'Added {stars_added} from {sqlite_db}', '+')
+            files_bar.text(f'Grand star count so far: {grand_total_rows:,} / {total_rows_in_sources:,}') 
+            # files_bar.fin
 
-        COUNT_QUERY=f"""SELECT count(1)
-        FROM {GRAND_DB_TABLENAME}
-        {GAIAWEB_DATA_SETS[dataset_name]}"""
+        hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources:,}') 
 
-        SQL_QUERY=f"""SELECT 
-        {SELECT_ROUNDED_CLAUSE} 
-        FROM {GRAND_DB_TABLENAME}
-        {GAIAWEB_DATA_SETS[dataset_name]}"""
+        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+        grand_total_rows = row_count
 
-        # print( f"SQL_QUERY = {SQL_QUERY}")
-
-
-        # dataset_df = pd.read_sql_query( SQL_QUERY, bigdb_conn)
-        # dataset_num = len( dataset_df)
-
-        '''
-        The following limitations apply:
-        - More than 10m stars will start to choke the rendering engine
-        - More than 500Mb per file won't be cached by Cloudflare (too big a file anyway)
-        - 100 files per set seems a reasonable coverage split
-        Nice to have's:
-        - Order data in increasing distance, will require index on dist column?
-        - 
-        '''
-
-        hm( "Counting stars in this set...")
-        dataset_num = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME, GAIAWEB_DATA_SETS[dataset_name])
-
-        hm( f"Dataset {dataset_name} has {dataset_num:,} stars.")
-        if ( dataset_num > 5 * 10 **6):
-            hm( f'More 5m star, adjust query to reduce size:\n{COUNT_QUERY}', '-')
+        if total_rows_in_sources == grand_total_rows:
+            hm( f"Total source rows now match grand DB: {total_rows_in_sources:,}", '+')
         else:
-            hm( "Suitable for a dataset, extracting data ...", '+')
-            df = pd.read_sql_query( SQL_QUERY, bigdb_conn)
-            print(df)
-            # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-            df.sort_values( 'dist', inplace=True, ignore_index=True)
-            # print( 'avg: ', statistics. ( values))
-            print(df)
-
-            if not os.path.exists( f'{SET_JS_BASEPATH}{dataset_name}'):
-                os.mkdir( f'{SET_JS_BASEPATH}{dataset_name}')
-
-            js_prefix = 'var data = '
-            df_write_gaia_set( dataset_name, js_prefix, df, ['x','y','z','color','abs_mag'])
-            # exit(8)
-
-            # js_files = []
-            # for file_index in range(1,101):
-            """
-            cursor.fetchall() fetches all results into a list first.
-            Instead, you can iterate over the cursor itself:
-            """
-                
-    # do_stuff_with_row
-
-        # dataset_file = f"{SOURCE_DB_PATH}/{dataset_name}.js"
-        
-        # checking count first:
-        # echo "var stars = [" > "$dataset_file"
-
-        # for sqlite_db in GaiaSource_*.sqlite; do
-        #     # Scan for count first? Maybe only in a single indexed db
-        #     SQL_QUERY=f"""SELECT 
-        #     {SELECT_ROUNDED} 
-        #     FROM gaia_source_filtered
-        #     {where_clause}"""
-        #     sqlite3 "$sqlite_db" "$SQL_QUERY LIMIT 2" \
-        #         | tr '|' , \
-        #         | perl -pe '
-        #         s/^/[/;
-        #         s/$/],/;
-        #         s/(\d\.\d{3})\d+/\1/g;
-        #         s/(\d{3}\.\d)\d+/\1/g;
-        #         s/(\d\.\d)\d+\]/\1]/;
-        #         ' \
-        #         | cat     >> "$dataset_file"
-            
-        #     exit 11
-        # done
-        # echo "];" >> "$js_out"
+            hm( f"Fatal error, total rows in source DBs still doesn't match grand DB total: {total_rows_in_sources:,} != {grand_total_rows:,}", '!')
+            exit(1)
+            hm('Updating the Grand DB ...')
+            for sqlite_db in alive_it(SQlite_db_files):
+                update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
 
 if __name__ == "__main__":
-    # stuff only to run when not called via 'import' here
-    main()
+	# stuff only to run when not called via 'import' here
+	main()
 
-
-    # count_star = get_sqlite3_count_star( sqlite_db, 'gaia_source_filtered')
-    # total_rows_in_sources += count_star
-    #print('.', end='')
-
-"""
-cursor.fetchall() fetches all results into a list first.
-Instead, you can iterate over the cursor itself:
-"""
-
-if False:
-    c.execute('SELECT * FROM big_table') 
-    for row in c:
-        pass
-    # do_stuff_with_row
-
-
-exit(3)
+exit(0)
 
 
 
