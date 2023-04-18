@@ -5,6 +5,10 @@
 DOWNLOADED=0
 MAX_DOWNLOAD="$1"
 
+# Minimum count of stars per DB to consider it downloaded & processed properly:
+# Most have ~250 k but one had around 28k "only"
+MIN_STAR_COUNT=20000
+
 JS_WHERE_CLAUSE="where parallax / parallax_error > 5"
 
 JS_INDEX="gaia-web-sky-elements.js"
@@ -157,7 +161,7 @@ sort -rn Gaia_element_areas.txt \
 
     # Check if at least 100k lines are present
     if [ -f "$sqlite_db" ]; then
-        if check_sqlite_db "$sqlite_db" 50000; then
+        if check_sqlite_db "$sqlite_db" $MIN_STAR_COUNT; then
             hm + "Got row_count > 100000, seems in order."
             continue
         else
@@ -186,7 +190,7 @@ sort -rn Gaia_element_areas.txt \
 ###         if [ "$GZIP_OK" = y -a "$MD5_OK" = y ]; then
             hm + "Processing file"
             ./gaia-process-csv.py "$filename"
-            if check_sqlite_db "$sqlite_db" 50000; then
+            if check_sqlite_db "$sqlite_db" $MIN_STAR_COUNT; then
                 hm + "Got row_count > 100000, seems in order."
                 rm -vf "$filename"
 								continue
@@ -203,11 +207,11 @@ sort -rn Gaia_element_areas.txt \
 
     if [ ! -f "$filename" ]; then
         # Only download if not fully imported ok already
-        COMMON_WGET_OPTIONS="-q  --show-progress --progress=bar:force"
+        COMMON_WGET_OPTIONS="-q  --show-progress --progress=bar:force --tries=100" # For if we get throttled
 				HOUR=$(date +%H)
 				if date +%H | grep -qP '^(23|0?[0-7])$'; then
 					hm + "Using quiet hour speed: 10M/s"
-					WGET_OPTIONS="$COMMON_WGET_OPTIONS --limit-rate=10M"
+					WGET_OPTIONS="$COMMON_WGET_OPTIONS --limit-rate=2M"
 				else
 					hm - "Using busy hour speed: 500k/s"
 					WGET_OPTIONS="$COMMON_WGET_OPTIONS --limit-rate=500k"
