@@ -35,6 +35,7 @@ Ever since learning about the Gaia mission I knew that, besides the obviously re
 Tech details of how data is extracted/stored/processed:
 - csv files are downloaded
 - stars with suitable parallax values are stored locally in sqlite
+- all sqlite data is stored in large Postgres table with indexes on suitable columns to allow various data exports.
 - only those with high confidence parallax are stored in a .js
 - the starfield html page loads all .js files
 - additional filters are applied while loaded as not all data can be stored. This way of filtering data will be deprecated once suitable datasets have been generated once all data can be processed.
@@ -45,7 +46,10 @@ Tech details of how data is extracted/stored/processed:
 - Process complete data set and split in interesting sections, e.g.:
   - Galactic outline (if descernable)
   - Local neighbourhood only
-  - Search data for clusters by calculating star densities 
+  - Search data for clusters by calculating star densities
+- Datasets:
+  - focus on high density anomolies (globular/open clusters), so this will rely on prior appropriate binning and using that to generate only star data for high density regions found.
+  - Import 
 - Annotate interesting features, e.g.:
   - Open clusters
   - Globular clusters (if present in data?)
@@ -57,7 +61,8 @@ Tech details of how data is extracted/stored/processed:
   - Implement waypoint tour
     - Done, but need some way of interacting with it / sharing / adding items / tagging tour stops etc...
   - Add hud view for camera viewing angle and speed vector
-  - some sort of galactic or RA/dec minimap HUD view?
+  - some sort of galactic or RA/dec minimap HUD view? Or grid on sky background option?
+  - Done: Better tour navigation, i.e. next/prev/reset buttons at least
 - Allow sharing of location / camera angle via url, e.g. http://site/gwsf#12,45,56@0.5,0.5,0.5 (would need to include selected dataset and sizeAttenuation setting.)
 - Separate viewer and dataset for Gaia galactic candidates data set, using red-shift to calculate 3D position. Other datasets may have additional/more/better data too (SLOAN?).
 

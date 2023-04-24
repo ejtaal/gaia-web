@@ -1,4 +1,4 @@
-Script started on 2023-04-18 02:19:04+01:00 [TERM="screen-256color" TTY="/dev/pts/2" COLUMNS="210" LINES="54"]
+Script started on 2023-04-18 03:24:06+01:00 [TERM="screen-256color" TTY="/dev/pts/9" COLUMNS="210" LINES="54"]
 [1m[96m[*] Running stats ...[0m
 Parameter set {'px_over_err': 200, 'dist': 1000, 'abs_mag': 3} : 1,009,713 stars.
 Parameter set {'px_over_err': 200, 'dist': 1000, 'abs_mag': 4} : 1,088,637 stars.
@@ -16,17 +16,8 @@ Parameter set {'px_over_err': 200, 'dist': 2000, 'abs_mag': 6} : 1,485,193 stars
 Parameter set {'px_over_err': 200, 'dist': 2000, 'abs_mag': 8} : 1,492,830 stars.
 Parameter set {'px_over_err': 200, 'dist': 2000, 'abs_mag': 10} : 1,494,179 stars.
 Parameter set {'px_over_err': 200, 'dist': 2000, 'abs_mag': 15} : 1,494,271 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 1} : 1,063,049 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 2} : 1,230,671 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 3} : 1,345,680 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 4} : 1,424,604 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 5} : 1,467,510 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 6} : 1,485,202 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 8} : 1,492,839 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 10} : 1,494,188 stars.
-Parameter set {'px_over_err': 200, 'dist': 3000, 'abs_mag': 15} : 1,494,280 stars.
-[1m[93m[-] dist_px_limit[( 200, 1)] == 1,063,049 @ dist 4000[0m
-[1m[93m[-] Distance limit of px_over_err 200 reached at distance 4000. Skipping to next parameter set.[0m
+[1m[93m[-] dist_px_limit[( 200, 1)] > 0.9 * 1,063,049 @ dist 3000[0m
+[1m[93m[-] Practical distance limit of px_over_err 200 reached at distance 3000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 150, 'dist': 1000, 'abs_mag': 2} : 1,131,562 stars.
 Parameter set {'px_over_err': 150, 'dist': 1000, 'abs_mag': 3} : 1,301,001 stars.
 Parameter set {'px_over_err': 150, 'dist': 1000, 'abs_mag': 4} : 1,424,323 stars.
@@ -45,18 +36,8 @@ Parameter set {'px_over_err': 150, 'dist': 2000, 'abs_mag': 6} : 2,611,833 stars
 Parameter set {'px_over_err': 150, 'dist': 2000, 'abs_mag': 8} : 2,623,519 stars.
 Parameter set {'px_over_err': 150, 'dist': 2000, 'abs_mag': 10} : 2,625,499 stars.
 Parameter set {'px_over_err': 150, 'dist': 2000, 'abs_mag': 15} : 2,625,619 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 0} : 1,571,699 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 1} : 1,996,836 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 2} : 2,252,491 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 3} : 2,421,930 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 4} : 2,545,252 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 5} : 2,614,895 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 6} : 2,642,803 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 8} : 2,654,489 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 10} : 2,656,469 stars.
-Parameter set {'px_over_err': 150, 'dist': 3000, 'abs_mag': 15} : 2,656,589 stars.
-[1m[93m[-] dist_px_limit[( 150, 0)] == 1,571,699 @ dist 4000[0m
-[1m[93m[-] Distance limit of px_over_err 150 reached at distance 4000. Skipping to next parameter set.[0m
+[1m[93m[-] dist_px_limit[( 150, 0)] > 0.9 * 1,571,699 @ dist 3000[0m
+[1m[93m[-] Practical distance limit of px_over_err 150 reached at distance 3000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 100, 'dist': 1000, 'abs_mag': 2} : 1,332,812 stars.
 Parameter set {'px_over_err': 100, 'dist': 1000, 'abs_mag': 3} : 1,628,740 stars.
 Parameter set {'px_over_err': 100, 'dist': 1000, 'abs_mag': 4} : 1,859,688 stars.
@@ -76,23 +57,20 @@ Parameter set {'px_over_err': 100, 'dist': 2000, 'abs_mag': 6} : 4,706,344 stars
 Parameter set {'px_over_err': 100, 'dist': 2000, 'abs_mag': 8} : 4,727,315 stars.
 Parameter set {'px_over_err': 100, 'dist': 2000, 'abs_mag': 10} : 4,730,716 stars.
 Parameter set {'px_over_err': 100, 'dist': 2000, 'abs_mag': 15} : 4,730,907 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': -2} : 1,101,540 stars.
 Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': -1} : 2,384,747 stars.
 Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 0} : 3,543,069 stars.
 Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 1} : 4,303,508 stars.
 Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 2} : 4,744,774 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 100, 'dist': 4000, 'abs_mag': -1} : 2,412,189 stars.
-Parameter set {'px_over_err': 100, 'dist': 4000, 'abs_mag': 0} : 3,570,511 stars.
-Parameter set {'px_over_err': 100, 'dist': 4000, 'abs_mag': 1} : 4,330,950 stars.
-Parameter set {'px_over_err': 100, 'dist': 4000, 'abs_mag': 2} : 4,772,216 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 100, 'dist': 5000, 'abs_mag': -1} : 2,412,194 stars.
-Parameter set {'px_over_err': 100, 'dist': 5000, 'abs_mag': 0} : 3,570,516 stars.
-Parameter set {'px_over_err': 100, 'dist': 5000, 'abs_mag': 1} : 4,330,955 stars.
-Parameter set {'px_over_err': 100, 'dist': 5000, 'abs_mag': 2} : 4,772,221 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 100, -1)] == 2,412,194 @ dist 10000[0m
-[1m[93m[-] Distance limit of px_over_err 100 reached at distance 10000. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 3} : 5,042,984 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 4} : 5,273,932 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 5} : 5,404,238 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 6} : 5,454,865 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 8} : 5,475,836 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 10} : 5,479,237 stars.
+Parameter set {'px_over_err': 100, 'dist': 3000, 'abs_mag': 15} : 5,479,428 stars.
+[1m[93m[-] dist_px_limit[( 100, -2)] > 0.9 * 1,128,824 @ dist 4000[0m
+[1m[93m[-] Practical distance limit of px_over_err 100 reached at distance 4000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 80, 'dist': 1000, 'abs_mag': 1} : 1,001,227 stars.
 Parameter set {'px_over_err': 80, 'dist': 1000, 'abs_mag': 2} : 1,394,934 stars.
 Parameter set {'px_over_err': 80, 'dist': 1000, 'abs_mag': 3} : 1,784,397 stars.
@@ -106,18 +84,28 @@ Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': -1} : 1,889,173 stars
 Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 0} : 3,263,548 stars.
 Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 1} : 4,286,703 stars.
 Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 2} : 4,880,904 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 3} : 5,291,060 stars.
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 4} : 5,610,880 stars.
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 5} : 5,790,718 stars.
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 6} : 5,859,531 stars.
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 8} : 5,888,265 stars.
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 10} : 5,892,828 stars.
+Parameter set {'px_over_err': 80, 'dist': 2000, 'abs_mag': 15} : 5,893,058 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': -2} : 1,582,217 stars.
 Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': -1} : 3,379,837 stars.
 Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 0} : 4,962,004 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 80, 'dist': 4000, 'abs_mag': -1} : 3,628,616 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 80, 'dist': 5000, 'abs_mag': -1} : 3,637,065 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 80, 'dist': 10000, 'abs_mag': -1} : 3,637,086 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 80, -1)] == 3,637,086 @ dist 20000[0m
-[1m[93m[-] Distance limit of px_over_err 80 reached at distance 20000. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 1} : 5,987,335 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 2} : 6,581,536 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 3} : 6,991,692 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 4} : 7,311,512 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 5} : 7,491,350 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 6} : 7,560,165 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 8} : 7,588,899 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 10} : 7,593,462 stars.
+Parameter set {'px_over_err': 80, 'dist': 3000, 'abs_mag': 15} : 7,593,692 stars.
+Parameter set {'px_over_err': 80, 'dist': 4000, 'abs_mag': -2} : 1,811,439 stars.
+[1m[93m[-] dist_px_limit[( 80, -1)] > 0.9 * 3,628,616 @ dist 4000[0m
+[1m[93m[-] Practical distance limit of px_over_err 80 reached at distance 4000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 50, 'dist': 1000, 'abs_mag': 1} : 1,051,947 stars.
 Parameter set {'px_over_err': 50, 'dist': 1000, 'abs_mag': 2} : 1,472,722 stars.
 Parameter set {'px_over_err': 50, 'dist': 1000, 'abs_mag': 3} : 2,015,033 stars.
@@ -129,17 +117,29 @@ Parameter set {'px_over_err': 50, 'dist': 1000, 'abs_mag': 10} : 3,138,258 stars
 Parameter set {'px_over_err': 50, 'dist': 1000, 'abs_mag': 15} : 3,138,599 stars.
 Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': -1} : 2,068,051 stars.
 Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 0} : 3,708,737 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 1} : 5,359,638 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 2} : 6,470,374 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 3} : 7,252,428 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 4} : 7,861,038 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 5} : 8,199,031 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 6} : 8,327,781 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 8} : 8,381,835 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 10} : 8,390,048 stars.
+Parameter set {'px_over_err': 50, 'dist': 2000, 'abs_mag': 15} : 8,390,389 stars.
+Parameter set {'px_over_err': 50, 'dist': 3000, 'abs_mag': -2} : 2,125,388 stars.
 Parameter set {'px_over_err': 50, 'dist': 3000, 'abs_mag': -1} : 4,844,309 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 50, 'dist': 3000, 'abs_mag': 0} : 7,690,745 stars.
+Parameter set {'px_over_err': 50, 'dist': 3000, 'abs_mag': 1} : 9,565,432 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 50, 'dist': 4000, 'abs_mag': -3} : 1,144,600 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 50, 'dist': 4000, 'abs_mag': -2} : 3,330,115 stars.
+Parameter set {'px_over_err': 50, 'dist': 4000, 'abs_mag': -1} : 6,682,298 stars.
+Parameter set {'px_over_err': 50, 'dist': 4000, 'abs_mag': 0} : 9,575,164 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 50, 'dist': 5000, 'abs_mag': -3} : 1,449,846 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 50, 'dist': 10000, 'abs_mag': -3} : 1,609,292 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 50, -3)] == 1,609,292 @ dist 20000[0m
-[1m[93m[-] Distance limit of px_over_err 50 reached at distance 20000. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 50, 'dist': 5000, 'abs_mag': -2} : 3,830,064 stars.
+[1m[93m[-] dist_px_limit[( 50, -1)] > 0.9 * 7,196,206 @ dist 5000[0m
+[1m[93m[-] Practical distance limit of px_over_err 50 reached at distance 5000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 40, 'dist': 1000, 'abs_mag': 1} : 1,071,053 stars.
 Parameter set {'px_over_err': 40, 'dist': 1000, 'abs_mag': 2} : 1,499,338 stars.
 Parameter set {'px_over_err': 40, 'dist': 1000, 'abs_mag': 3} : 2,068,396 stars.
@@ -151,18 +151,28 @@ Parameter set {'px_over_err': 40, 'dist': 1000, 'abs_mag': 10} : 3,512,157 stars
 Parameter set {'px_over_err': 40, 'dist': 1000, 'abs_mag': 15} : 3,512,554 stars.
 Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': -1} : 2,121,161 stars.
 Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 0} : 3,803,930 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 1} : 5,655,802 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 2} : 7,114,545 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 3} : 8,159,526 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 4} : 8,970,473 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 5} : 9,419,451 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 6} : 9,591,397 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 8} : 9,663,500 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 10} : 9,674,176 stars.
+Parameter set {'px_over_err': 40, 'dist': 2000, 'abs_mag': 15} : 9,674,573 stars.
+Parameter set {'px_over_err': 40, 'dist': 3000, 'abs_mag': -2} : 2,218,537 stars.
+Parameter set {'px_over_err': 40, 'dist': 3000, 'abs_mag': -1} : 5,127,528 stars.
+Parameter set {'px_over_err': 40, 'dist': 3000, 'abs_mag': 0} : 8,620,672 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 40, 'dist': 4000, 'abs_mag': -3} : 1,277,616 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 40, 'dist': 4000, 'abs_mag': -2} : 3,737,122 stars.
+Parameter set {'px_over_err': 40, 'dist': 4000, 'abs_mag': -1} : 7,957,351 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 40, 'dist': 5000, 'abs_mag': -3} : 1,785,242 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 40, 'dist': 10000, 'abs_mag': -3} : 2,336,922 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 40, 'dist': 20000, 'abs_mag': -3} : 2,336,926 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 40, -3)] == 2,336,926 @ dist 30000[0m
-[1m[93m[-] Distance limit of px_over_err 40 reached at distance 30000. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 40, 'dist': 5000, 'abs_mag': -2} : 4,790,902 stars.
+Parameter set {'px_over_err': 40, 'dist': 5000, 'abs_mag': -1} : 9,167,474 stars.
+[1m[93m[-] dist_px_limit[( 40, 0)] > 0.9 * 12,938,033 @ dist 5000[0m
+[1m[93m[-] Practical distance limit of px_over_err 40 reached at distance 5000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 30, 'dist': 1000, 'abs_mag': 1} : 1,090,218 stars.
 Parameter set {'px_over_err': 30, 'dist': 1000, 'abs_mag': 2} : 1,525,708 stars.
 Parameter set {'px_over_err': 30, 'dist': 1000, 'abs_mag': 3} : 2,108,948 stars.
@@ -174,20 +184,27 @@ Parameter set {'px_over_err': 30, 'dist': 1000, 'abs_mag': 10} : 3,983,480 stars
 Parameter set {'px_over_err': 30, 'dist': 1000, 'abs_mag': 15} : 3,983,994 stars.
 Parameter set {'px_over_err': 30, 'dist': 2000, 'abs_mag': -1} : 2,175,038 stars.
 Parameter set {'px_over_err': 30, 'dist': 2000, 'abs_mag': 0} : 3,895,121 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 30, 'dist': 2000, 'abs_mag': 1} : 5,864,960 stars.
+Parameter set {'px_over_err': 30, 'dist': 2000, 'abs_mag': 2} : 7,791,879 stars.
+Parameter set {'px_over_err': 30, 'dist': 2000, 'abs_mag': 3} : 9,287,166 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 30, 'dist': 3000, 'abs_mag': -2} : 2,299,517 stars.
+Parameter set {'px_over_err': 30, 'dist': 3000, 'abs_mag': -1} : 5,310,184 stars.
+Parameter set {'px_over_err': 30, 'dist': 3000, 'abs_mag': 0} : 9,375,816 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 30, 'dist': 4000, 'abs_mag': -3} : 1,363,939 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 30, 'dist': 4000, 'abs_mag': -2} : 3,978,760 stars.
+Parameter set {'px_over_err': 30, 'dist': 4000, 'abs_mag': -1} : 9,076,451 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 30, 'dist': 5000, 'abs_mag': -3} : 2,005,436 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 30, 'dist': 5000, 'abs_mag': -2} : 5,662,592 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 30, 'dist': 10000, 'abs_mag': -5} : 1,123,207 stars.
 Parameter set {'px_over_err': 30, 'dist': 10000, 'abs_mag': -3} : 3,483,873 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 30, 'dist': 20000, 'abs_mag': -5} : 1,135,943 stars.
-Parameter set {'px_over_err': 30, 'dist': 20000, 'abs_mag': -3} : 3,496,687 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 30, -5)] == 1,135,943 @ dist 30000[0m
-[1m[93m[-] Distance limit of px_over_err 30 reached at distance 30000. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 30, 'dist': 10000, 'abs_mag': -2} : 7,630,260 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+[1m[93m[-] dist_px_limit[( 30, -5)] > 0.9 * 1,135,943 @ dist 20000[0m
+[1m[93m[-] Practical distance limit of px_over_err 30 reached at distance 20000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 20, 'dist': 1000, 'abs_mag': 1} : 1,107,959 stars.
 Parameter set {'px_over_err': 20, 'dist': 1000, 'abs_mag': 2} : 1,551,363 stars.
 Parameter set {'px_over_err': 20, 'dist': 1000, 'abs_mag': 3} : 2,147,570 stars.
@@ -199,45 +216,60 @@ Parameter set {'px_over_err': 20, 'dist': 1000, 'abs_mag': 10} : 4,599,689 stars
 Parameter set {'px_over_err': 20, 'dist': 1000, 'abs_mag': 15} : 4,600,490 stars.
 Parameter set {'px_over_err': 20, 'dist': 2000, 'abs_mag': -1} : 2,221,740 stars.
 Parameter set {'px_over_err': 20, 'dist': 2000, 'abs_mag': 0} : 3,974,782 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 20, 'dist': 2000, 'abs_mag': 1} : 5,999,966 stars.
+Parameter set {'px_over_err': 20, 'dist': 2000, 'abs_mag': 2} : 8,340,173 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 20, 'dist': 3000, 'abs_mag': -2} : 2,364,643 stars.
+Parameter set {'px_over_err': 20, 'dist': 3000, 'abs_mag': -1} : 5,446,960 stars.
+Parameter set {'px_over_err': 20, 'dist': 3000, 'abs_mag': 0} : 9,766,216 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 20, 'dist': 4000, 'abs_mag': -3} : 1,418,931 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 20, 'dist': 4000, 'abs_mag': -2} : 4,118,566 stars.
+Parameter set {'px_over_err': 20, 'dist': 4000, 'abs_mag': -1} : 9,662,204 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 20, 'dist': 5000, 'abs_mag': -3} : 2,114,482 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 20, 'dist': 5000, 'abs_mag': -2} : 6,127,449 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 20, 'dist': 10000, 'abs_mag': -5} : 1,616,591 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 20, 'dist': 10000, 'abs_mag': -3} : 5,106,710 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 20, 'dist': 20000, 'abs_mag': -5} : 1,949,421 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 20, 'dist': 30000, 'abs_mag': -5} : 1,949,422 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 20, -5)] == 1,949,422 @ dist 50000[0m
-[1m[93m[-] Distance limit of px_over_err 20 reached at distance 50000. Skipping to next parameter set.[0m
+[1m[93m[-] dist_px_limit[( 20, -3)] > 0.9 * 5,490,104 @ dist 20000[0m
+[1m[93m[-] Practical distance limit of px_over_err 20 reached at distance 20000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 10, 'dist': 500, 'abs_mag': 15} : 1,000,801 stars.
 Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 1} : 1,127,292 stars.
 Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 2} : 1,582,700 stars.
 Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 3} : 2,199,030 stars.
 Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 4} : 3,181,728 stars.
 Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 5} : 4,301,742 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 6} : 5,094,300 stars.
+Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 8} : 5,483,776 stars.
+Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 10} : 5,542,258 stars.
+Parameter set {'px_over_err': 10, 'dist': 1000, 'abs_mag': 15} : 5,545,683 stars.
+Parameter set {'px_over_err': 10, 'dist': 2000, 'abs_mag': -2} : 1,018,045 stars.
 Parameter set {'px_over_err': 10, 'dist': 2000, 'abs_mag': -1} : 2,265,003 stars.
 Parameter set {'px_over_err': 10, 'dist': 2000, 'abs_mag': 0} : 4,054,982 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 2000, 'abs_mag': 1} : 6,136,367 stars.
+Parameter set {'px_over_err': 10, 'dist': 2000, 'abs_mag': 2} : 8,633,686 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 3000, 'abs_mag': -2} : 2,416,571 stars.
+Parameter set {'px_over_err': 10, 'dist': 3000, 'abs_mag': -1} : 5,564,545 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 10, 'dist': 4000, 'abs_mag': -3} : 1,454,586 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 4000, 'abs_mag': -2} : 4,218,682 stars.
+Parameter set {'px_over_err': 10, 'dist': 4000, 'abs_mag': -1} : 9,913,199 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 10, 'dist': 5000, 'abs_mag': -3} : 2,173,706 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 5000, 'abs_mag': -2} : 6,307,092 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 10, 'dist': 10000, 'abs_mag': -5} : 1,781,637 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 10000, 'abs_mag': -3} : 6,536,780 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 10, 'dist': 20000, 'abs_mag': -5} : 3,469,696 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 10, 'dist': 30000, 'abs_mag': -5} : 3,555,586 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-Parameter set {'px_over_err': 10, 'dist': 50000, 'abs_mag': -5} : 3,556,233 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 10, -5)] == 3,556,233 @ dist 100000[0m
-[1m[93m[-] Distance limit of px_over_err 10 reached at distance 100000. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 10, 'dist': 20000, 'abs_mag': -3} : 9,588,177 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+[1m[93m[-] dist_px_limit[( 10, -5)] > 0.9 * 3,555,586 @ dist 30000[0m
+[1m[93m[-] Practical distance limit of px_over_err 10 reached at distance 30000. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 5, 'dist': 500, 'abs_mag': 8} : 1,049,102 stars.
 Parameter set {'px_over_err': 5, 'dist': 500, 'abs_mag': 10} : 1,213,217 stars.
 Parameter set {'px_over_err': 5, 'dist': 500, 'abs_mag': 15} : 1,226,163 stars.
@@ -246,23 +278,32 @@ Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 2} : 1,606,761 stars.
 Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 3} : 2,243,706 stars.
 Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 4} : 3,266,635 stars.
 Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 5} : 4,474,096 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 6} : 5,609,372 stars.
+Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 8} : 6,731,288 stars.
+Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 10} : 6,939,322 stars.
+Parameter set {'px_over_err': 5, 'dist': 1000, 'abs_mag': 15} : 6,952,268 stars.
+Parameter set {'px_over_err': 5, 'dist': 2000, 'abs_mag': -2} : 1,028,600 stars.
 Parameter set {'px_over_err': 5, 'dist': 2000, 'abs_mag': -1} : 2,290,780 stars.
 Parameter set {'px_over_err': 5, 'dist': 2000, 'abs_mag': 0} : 4,109,783 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 2000, 'abs_mag': 1} : 6,239,620 stars.
+Parameter set {'px_over_err': 5, 'dist': 2000, 'abs_mag': 2} : 8,830,701 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 3000, 'abs_mag': -2} : 2,445,871 stars.
+Parameter set {'px_over_err': 5, 'dist': 3000, 'abs_mag': -1} : 5,636,215 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 5, 'dist': 4000, 'abs_mag': -3} : 1,473,016 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 4000, 'abs_mag': -2} : 4,274,804 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 5, 'dist': 5000, 'abs_mag': -3} : 2,203,577 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 5000, 'abs_mag': -2} : 6,398,423 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 5, 'dist': 10000, 'abs_mag': -5} : 1,813,284 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 10000, 'abs_mag': -3} : 6,760,162 stars.
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
 Parameter set {'px_over_err': 5, 'dist': 20000, 'abs_mag': -5} : 4,195,291 stars.
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] Size limit of 5,000,000 stars reached. Skipping to next parameter set.[0m
-[1m[93m[-] dist_px_limit[( 5, -5)] == 5,267,228 @ dist 250000[0m
-[1m[93m[-] Distance limit of px_over_err 5 reached at distance 250000. Skipping to next parameter set.[0m
+[1m[93m[-] Size limit of 10,000,000 stars reached. Skipping to next parameter set.[0m
+Parameter set {'px_over_err': 5, 'dist': 30000, 'abs_mag': -5} : 5,132,569 stars.
+[1m[93m[-] dist_px_limit[( 5, -3)] > 0.9 * 14,618,023 @ dist 30000[0m
+[1m[93m[-] Practical distance limit of px_over_err 5 reached at distance 30000. Skipping to next parameter set.[0m
 
-Script done on 2023-04-18 02:51:32+01:00 [COMMAND_EXIT_CODE="3"]
+Script done on 2023-04-18 03:59:10+01:00 [COMMAND_EXIT_CODE="0"]

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>GAIA-Web 3D Starfield v0.21</title>
+		<title>GAIA-Web 3D Starfield v0.3</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="three.js/main.css">
@@ -84,17 +84,19 @@ Please be patient as star data is loaded in the background.
 					Move: WASDQE<br/>
 					Warp: Space<br/>
 					Look: Mouse<br/>
-					Toggle distance dimming: T<br/>
+					Tour start/pause: T<br/>
+					Tour next object: N<br/>
+					Tour prev object: P<br/>
                     Back to Sol: B<br/>
                     Galactic overview: G<br/>
-                    Planet Earth/Sol/Origin: P<br/>
-                    Reload all star data for galactic overview: L<br/>
-                    Reload all star data for Sol neighbourhood:Planet Earth/Sol/Origin: N<br/>
 				</p>
 			</div>
 		</div>
 		<pre id="statusline"></pre>
 		<!-- 
+                    Planet Earth/Sol/Origin: P<br/>
+                    Reload all star data for galactic overview: L<br/>
+                    Reload all star data for Sol neighbourhood:Planet Earth/Sol/Origin: N<br/>
 		<div id="info">
 			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - trackball controls<br />
 			MOVE mouse &amp; press LEFT/A: rotate, MIDDLE/S: zoom, RIGHT/D: pan
@@ -131,7 +133,53 @@ Please be patient as star data is loaded in the background.
 
 				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
 
-				gl_PointSize = size * ( 300.0 / -mvPosition.z );
+				//gl_PointSize = size * ( 600.0 / -mvPosition.z );
+				//gl_PointSize = size * ( 300.0 / -mvPosition.z);
+                /*
+                So there will exist some formulae that will mimic the appearance
+                of nearby stars vs the cloudy appearance of a the myriad
+                of milky way stars. Is it related to the size of rods
+                in the eye?
+                */
+                /*
+                // Attempt 1
+                // Ok but milky way a bit overpowering
+				gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.3);
+                if ( gl_PointSize < 4.0) gl_PointSize = 4.0;
+                */
+
+                /*
+                // Attempt 2: The one to beat. Distant cloudy patches visible while
+                // nearby stars are nice and bright
+                // 
+				
+                gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.5);
+                // if ( (gl_PointSize > 1.0) && (gl_PointSize < 3.0)) gl_PointSize = 3.0;
+                
+                if ( gl_PointSize < 7.0) {
+                    //vColor = vColor * (0.5 + gl_PointSize / 14.0);
+                    //vColor = vColor * 0.9;
+                    gl_PointSize = 3.5 + gl_PointSize / 2.0;
+                }
+
+                */
+                /*
+                // Attempt 
+                // 
+                
+				gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.3);
+                if ( (gl_PointSize > 1.0) && (gl_PointSize < 3.0)) gl_PointSize = 3.0;
+                if ( gl_PointSize < 1.0) gl_PointSize = 1.0;
+                */
+
+				gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.5);
+                // if ( (gl_PointSize > 1.0) && (gl_PointSize < 3.0)) gl_PointSize = 3.0;
+                
+                if ( gl_PointSize < 7.0) {
+                    //vColor = vColor * (0.5 + gl_PointSize / 14.0);
+                    //vColor = vColor * 0.9;
+                    gl_PointSize = 3.5 + gl_PointSize / 2.0;
+                }
 
 				gl_Position = projectionMatrix * mvPosition;
 
@@ -150,6 +198,7 @@ Please be patient as star data is loaded in the background.
 
 				gl_FragColor = vec4( color * vColor, 1.0 );
 				gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+                // if ( gl_FragColor.a < 0.5 ) discard;
 
 			}
 
@@ -157,7 +206,7 @@ Please be patient as star data is loaded in the background.
 		<!-- The main index of all sky patch elements, which basically based on this file:
             http://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/_MD5SUM.txt
          -->
-        <script type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
+        <script sync type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
         <script type="module">
 // Uhm yeah the HTML ain't gonna dictate our indentation. Who does it think it is!?!?
 import * as THREE from 'three';
@@ -254,10 +303,10 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 // };
 
 
-
-let data_set = 'star_density'
-let prev_data_set = 'star_density'
-let data_set_type = 'cubes'
+let data_set = 'px50_2000ly_10mag'
+let prev_data_set = data_set
+// let prev_data_set = 'star_density'
+let data_set_type = ''
 let data_set_xyz_multiplier = 100
 
 let moveForward = false;
@@ -271,6 +320,7 @@ let warp_speed = 1;
 let warp_enabled = false;
 let global_sizeAttenuation = true;
 let global_sizeAttenuation_multiplier = 1;
+let axes_added = false;
 
 let stars_filter = 'da_hood';
 // let stars_filter = 'galactic';
@@ -285,31 +335,36 @@ let tour_orbit_radius = 25; //ly
 let tour_targets = [
     /*
     */
-    [  62, 130,   50],
-    [ 222, 336, 178],
-    [ -366, 434, 203],
-    [ -213, 438, -385],
-//    [ ],
-    [ 489, 730,  553], // <- is ths really something?
-    [ 515, 340, 1055],
-    [ 907, 779, 1102],
-    [ 125, 1219, -130],
-    [ 144.4, 1113.5, 53.8 ],
-    [ 136, 1254, -122],
-    [ -266.2, 1239.2,1100.6 ],
-    [ -2176.2, -4843.8, -2653.4 ],
-    [ 3618.0, 2559.1, 6839.6 ], // Maybe globular cluster?
+    [  62, 130, 50, 'Hyades'],
+    [ 222, 336, 178, 'Messier 45, Pleiades'],
+    [ -366, 434, 203, 'Messier 44, Beehive Cluster'],
+    [ -213, 438, -385, 'NGC 2451 A'],
+    [ -406, 838, -731, 'NGC 2451 B'],
+    [ -200, 68, -442, 'IC 2602, Southern Pleiades'],
+    [ -784, 190, 1336, '?'],
+    [ -108, -1263, -800, 'Messier 6, Butterfly Cluster'],
+//    [ , , , ''],
+    [ 489, 730,  553, 'IC 348'], // <- is ths really something?
+    [ 515, 340, 1055, '?'],
+    [ 907, 779, 1102, 'Messier 34'],
+    [ 125, 1219, -130, 'Trapezium Cluster?'],
+    [ 135, 1260, -115, 'Trapezium Cluster 2?'],
+    [ 144.4, 1113.5, 53.8, '?'],
+    [ -266.2, 1239.2,1100.6, '?' ],
+    [ -2176.2, -4843.8, -2653.4, 'Messier 4' ],
+    [ 3618.0, 2559.1, 6839.6, 'NGC 884 / NGC 869' ],
+    [ 141, 4179, 2670, 'Messier 37'],
+    [ 3792, -40, 5780, 'NGC 7789, White Rose Cluster'],
+    [ -302, -1940, -2330, 'IC 4651'],
+    [ -1710, 3209, -2895, 'Behind NGC 2451 A/B?'],
+    [ -1875, 2023, 576, 'Messier 67'],
+    [ -784, 194, -1333, 'NGC 3532, Wishing Well Cluster '],
     /*
-    [ ],
-    [ ],
-    [ ],
-    [ ],
-    [ ],
-    [ ],
-    [ ],
-    [ ],
-    [ ],
-    [ ],
+    [ , , , ''],
+    [ , , , ''],
+    [ , , , ''],
+    [ , , , ''],
+    [ ], 
     */
     ];
 
@@ -326,6 +381,9 @@ let tour_stops = [];
 let tour_target_index = 0;
 let tour_busy = false;
 let tour_object_panning = true;
+let tour_name = 'open clusters';
+let tour_target_name = '';
+// let tour_target_name = '';
 
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
@@ -369,6 +427,7 @@ init();
 animate();
 
 function add_nebulae_to_scene( scene, nebulae_data) {
+    console.log('Entering nebulae....')
 
     var canvas = document.createElement("canvas");
 
@@ -602,6 +661,7 @@ function add_nebulae_to_scene( scene, nebulae_data) {
 
 
 function add_cubes_to_scene( scene, cube_data) {
+    console.log('Entering cubes ....')
     /*
     theta: props.theta || 0.1,
       radius: props.radius || 600,
@@ -768,10 +828,14 @@ function add_cubes_to_scene( scene, cube_data) {
 
 
 function add_stars_to_scene( scene, star_coords) {
+    console.log('Entering stars ....')
+
     const positions = [];
-    const size_buckets = {};
+    // const size_buckets = {};
+    const colors = [];
+    const sizes = [];
     
-    var colors = [];
+    // var colors = [];
     var color_array = [];
     var veff_color = 0;
     var Wavelength = 0;
@@ -802,17 +866,24 @@ function add_stars_to_scene( scene, star_coords) {
         veff_color = star_coords[i][3];
         abs_magnitude = star_coords[i][4];
 
+        if (
+               (x > -1) && (x < 1)
+            && (y > -1) && (y < 1)
+            && (z > -1) && (z < 1)
+            ) console.log('xyz: ', x, y, z);
+
         // TODO: Add filtering based on GUI options selected
         distance = Math.sqrt( x**2 + y**2 + z**2)
         
         // if (distance > 2500) continue;
-        if ( stars_filter == 'da_hood')
-            if ((distance > 3000) || (abs_magnitude > 5)) continue;
+        // if ( stars_filter == 'da_hood')
+        //     if ((distance > 3000) || (abs_magnitude > 5)) continue;
 
-        if ( stars_filter == 'galactic')
-            if ((distance > 70000) || (abs_magnitude > -3)) continue;
+        // if ( stars_filter == 'galactic')
+        //     if ((distance > 70000) || (abs_magnitude > -3)) continue;
         // if ((distance < 3000) || (distance > 70000) || (abs_magnitude > -5)) continue;
-        // if (distance < 2000) continue;
+        // if (distance < 100) continue;
+        // if (total_stars_in_scene > 1000) continue;
 
         /*
         Quick absolute magnitude bucket check from a single source file
@@ -851,18 +922,20 @@ function add_stars_to_scene( scene, star_coords) {
         // spread over the absolute magitude bucket sized above
         var star_size = (10 - parseInt(abs_magnitude)) / 2
         if (star_size > 10) star_size = 10;
-        if (star_size < 0.2) star_size = 0.2;
+        if (star_size < 2) star_size = 2;
+        sizes.push( star_size)
 
         // initialize bucket if needed:
-        if ( ! (star_size in size_buckets)) {
-            // console.log( 'Need to create bucket: ' + star_size)
-            size_buckets[ star_size] = {
-                positions: [],
-                colors: []
-            }
-        }
+        // if ( ! (star_size in size_buckets)) {
+        //     // console.log( 'Need to create bucket: ' + star_size)
+        //     size_buckets[ star_size] = {
+        //         positions: [],
+        //         colors: []
+        //     }
+        // }
         
-        size_buckets[ star_size]['positions'].push( x, y, z);
+        // size_buckets[ star_size]['positions'].push( x, y, z);
+        positions.push( x, y, z);
         if (distance > star_max_dist) star_max_dist = distance;
 
 
@@ -931,39 +1004,39 @@ function add_stars_to_scene( scene, star_coords) {
             // }
             color.setRGB( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
         }
-        size_buckets[ star_size]['colors'].push( color.r, color.g, color.b );
+        colors.push( color.r, color.g, color.b );
     };
 
     // add all computed buckets to the scene
     var stars_geometry;
     var total_added = 0;
     // console.log( 'size bucket keys: ', Object.keys(size_buckets))
-    for (const [size, bucket] of Object.entries(size_buckets)) {
+    // for (const [size, bucket] of Object.entries(size_buckets)) {
         // console.log(size, bucket);
     
         stars_geometry = new THREE.BufferGeometry();
         // stars_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( bucket['positions'], 3 ) );
         // stars_geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( bucket['colors'], 3 ) );
-        var amount = bucket['positions'].length
-        const positions = new Float32Array( amount * 3 );
-        const colors = new Float32Array( amount * 3 );
-        const color = new THREE.Color( 0xff00ff );
-        for (var i = 0; i < amount; i++) {
-            positions[i] = bucket['positions'][i];
+        // var amount = bucket['positions'].length
+        // const positions = new Float32Array( amount * 3 );
+        // const colors = new Float32Array( amount * 3 );
+        // const color = new THREE.Color( 0xff00ff );
+        // for (var i = 0; i < amount; i++) {
+        //     positions[i] = bucket['positions'][i];
             // positions[i*3+1] = bucket['positions'][i][1];
             // positions[i*3+2] = bucket['positions'][i][2];
             // console.log( 'ALERT 5', amount, bucket['positions'][i], positions[i*3], bucket['positions'][i][0])
             // color.toArray( colors, i * 3 );
-            colors[i] = bucket['colors'][i]
-        }
+        //     colors[i] = bucket['colors'][i]
+        // }
         
-        stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
-        stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
+        stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( positions), 3 ) );
+        stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( new Float32Array(colors), 3 ) );
         // var sizes = Array( bucket['positions'].length).fill( size)
-        const sizes = new Float32Array( amount);
+        // const sizes = new Float32Array( amount);
         // for (var i = 0; i < amount; i++) sizes[i] = size * 3;
-        for (var i = 0; i < amount; i++) sizes[i] = size;
-        stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
+        // for (var i = 0; i < amount; i++) sizes[i] = size;
+        stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( new Float32Array(sizes), 1 ) );
 
         const point_material = new THREE.ShaderMaterial( {
             uniforms: {
@@ -971,6 +1044,7 @@ function add_stars_to_scene( scene, star_coords) {
                 // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
                 // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
                 pointTexture: { value: new THREE.TextureLoader().load( 'images/star-glare6.png' ) }
+                // pointTexture: { value: new THREE.TextureLoader().load( 'images/star-glare7.png' ) }
 
             },
             vertexShader: document.getElementById( 'vertexshader' ).textContent,
@@ -1013,14 +1087,15 @@ function add_stars_to_scene( scene, star_coords) {
 		// 			scene.add( light );
         // }
 
-        total_added += bucket['positions'].length;
+        // total_added += bucket['positions'].length / 3;
+        total_added += positions.length / 3;
         // console.log('DEBUG1 Added size/# new stars: ', size, bucket['positions'].length)
-    }
+    // }
     // console.log('DEBUG1', star_max_dist)
     // console.log('Added # new stars to scene: ', total_added);
 
-    const axesHelper = new THREE.AxesHelper( star_max_dist );
-    scene.add( axesHelper );
+    // const axesHelper = new THREE.AxesHelper( star_max_dist );
+    // scene.add( axesHelper );
     return total_added;
 }
 
@@ -1093,9 +1168,10 @@ function init() {
 
     var far_away = 10**6
     perspectiveCamera = new THREE.PerspectiveCamera( 60, aspect, 1, far_away );
+    
     perspectiveCamera.position.x = -200;
-    perspectiveCamera.position.y = 100
-    perspectiveCamera.position.z = 100;
+    perspectiveCamera.position.y = 50
+    perspectiveCamera.position.z = 10;
 
     perspectiveCamera.lookAt( 200, 100, 100 );
 
@@ -1207,7 +1283,6 @@ function init() {
     gui.add( { x: Object.keys(gaia_web_datasets)[0] }, 'x', gui_drop_down ).name( 'Dataset' ).onChange( function ( value ) {
         if ( value != prev_data_set) {
             data_set = value
-            data_set_type = gaia_web_datasets[value]
             reload_all_stars()
         }
         prev_data_set = data_set
@@ -1420,9 +1495,9 @@ function init() {
                 break;
 
             case 'KeyG':
-                camera.position.x = 1000;
-                camera.position.y = 20000;
-                camera.position.z = 1000;
+                camera.position.x = 3000;
+                camera.position.y = 7000;
+                camera.position.z = 3000;
                 camera.lookAt( 0, 0, 0);
                 break;
 
@@ -1440,7 +1515,7 @@ function init() {
             //     camera.lookAt( 10, 1, 10);
             //     break;
 
-            case 'KeyP':
+            case 'KeyB':
                 camera.position.x = -10;
                 camera.position.y = -2;
                 camera.position.z = -6;
@@ -1455,10 +1530,6 @@ function init() {
 
 
             case 'KeyT':
-                toggle_global_sizeAttenuation()
-                break;
-
-            case 'KeyY':
                 tour_active = ! tour_active
                 // if (tour_active) controls.unlock();
                 console.log(tour_active)
@@ -1469,9 +1540,23 @@ function init() {
                 warp_enabled = false;
                 break;
 
+            case 'KeyP':
+                // stars_filter = 'da_hood'
+                // reload_all_stars();
+                // Go to the next tour stop
+                tour_target_index += -1
+                console.log( tour_target_index)
+                if (tour_target_index < 0) tour_target_index = 0
+                tour_stops = []
+                break;
+
             case 'KeyN':
-                stars_filter = 'da_hood'
-                reload_all_stars();
+                // stars_filter = 'da_hood'
+                // reload_all_stars();
+                // Go to the next tour stop
+                tour_target_index += 1
+                if (tour_target_index >= tour_targets.length) tour_target_index = 0
+                tour_stops = []
                 break;
         }
     };
@@ -1525,14 +1610,21 @@ function reload_all_stars() {
     all_stars = {}
     total_stars_in_scene = 0
     total_cubes_in_scene = 0
+    data_set_type = gaia_web_datasets[data_set]
+    axes_added = false
+
     // for (var i = 0; i < 2; i++) available_elements.push( i);
 
     // Add Sol
     add_stars_to_scene( scene, [
-        [ 0, 0, 0, 1, -10],
+    // [ 1, 1, 1, 1, -3],
+    [ 0, 0, 0, 1, -10],
     // [ 5, 5, 5, 0.5, -10],
     // [ 10, 20, 10, 2, -10]
     ])
+
+    const axesHelper = new THREE.AxesHelper( 100 );
+    scene.add( axesHelper );
 
     // add_cubes_to_scene( scene, [])
 
@@ -1580,6 +1672,9 @@ function load_available_sky_elements() {
     // console.log('DEBUG71', Object.keys(all_stars))
     for (var element in all_stars) {
         if ( ! rendered_sky_elements.includes(element)) { 
+            // Reserve this now so there's no parsing going on in parallel
+            rendered_sky_elements.push( element)
+            
             // console.log( 'Need to parse element ' + element)
             // only parse 1 to save resources
             var total_stars = all_stars[ element].length;
@@ -1595,11 +1690,11 @@ function load_available_sky_elements() {
             // Try to allow garbage collection to kick in else we
             // use way too much memory
             all_stars[ element] = 0;
-            rendered_sky_elements.push( element)
+            // rendered_sky_elements.push( element)
             console.log( "Added " + num_added + '/' 
                 + total_stars + ' to 3D scene from element: ' + element 
                 + ' (' + rendered_sky_elements.length + ' of ' + available_elements.length + '). '
-                + 'Total stars/cubes in scene: ' + total_stars_in_scene+'/'+total_cubes_in_scene);
+                + 'Total stars/cubes in scene: ' + total_stars_in_scene.toLocaleString()+'/'+total_cubes_in_scene.toLocaleString());
 
             // var spin = spinner[ rendered_sky_elements.length + Object.keys(all_stars)]
             var total = rendered_sky_elements.length + Object.keys(all_stars).length
@@ -1613,6 +1708,14 @@ function load_available_sky_elements() {
             
         }
         
+    }
+
+    if ( (rendered_sky_elements.length == 100) && ! axes_added) {
+        // console.log('TEST')
+        const axesHelper = new THREE.AxesHelper( star_max_dist );
+        scene.add( axesHelper );
+        axes_added = true;
+
     }
 }
 
@@ -1629,6 +1732,7 @@ function tour_update( camera) {
         tour_started = true;
         tour_busy = true;
         var t = tour_targets[ tour_target_index];
+        tour_target_name = t[3]
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
 
@@ -1647,7 +1751,7 @@ function tour_update( camera) {
             var orbit_step_size = 0.2;
             var xdiff, ydiff, zdiff;
             var cur_radius = tour_orbit_radius;
-            for (var i = orbit_step_size; i < Math.PI * 6; i += 0.2) {
+            for (var i = orbit_step_size; i < Math.PI * 4; i += 0.2) {
                 cur_radius = tour_orbit_radius + Math.sin(i * 0.2) * 0.6 * tour_orbit_radius;
                 xdiff = t[0] - Math.cos(i) * cur_radius;
                 ydiff = t[1] + Math.sin(i * 0.4) * 0.8 * cur_radius;
@@ -1750,6 +1854,9 @@ function tour_update( camera) {
             // tour_busy = false;
             // tour_index = 0; // Will create next tour_stops[] for next tour_targets item.
         }
+        statusline = 'Tour: ' + tour_name 
+        + ', stop # ' + (tour_target_index+1)
+        + ': ' + tour_target_name
     }
     return 0
 
@@ -1931,8 +2038,10 @@ function animate() {
         + camera_vector.x.toFixed(2) + ', ' 
         + camera_vector.y.toFixed(2) + ', ' 
         + camera_vector.z.toFixed(2)
+        + '\nData set: ' 
+        + '  ' + data_set + '(' + data_set_type + ')'
         + '\nTotal stars/cubes in scene: ' 
-        + '  ' + total_stars_in_scene+'/'+total_cubes_in_scene
+        + '  ' + total_stars_in_scene.toLocaleString()+'/'+total_cubes_in_scene.toLocaleString()
         + '\n' + statusline
         ;
 

@@ -37,20 +37,23 @@ def main():
     global GRAND_DB_TABLENAME
     global BIN_DB_BASEPATH
 
-    bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
+    # bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
 
-    row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
-    grand_total_rows = row_count
-    hm( f"Total source star count matches grand DB: {grand_total_rows:,}", '+')
+    # row_count = get_pg_count_star( GRAND_DB_TABLENAME)
+    # grand_total_rows = row_count
+
+    # # hm( f"Total source star count matches grand DB: {grand_total_rows:,}", '+')
+    # hm( f"Total source star count in grand DB: {grand_total_rows:,}", '+')
 
 
     for bin_name in GAIAWEB_BIN_SETS.keys():
-        c = bigdb_conn.cursor()
+        # c = bigdb_conn.cursor()
         b = GAIAWEB_BIN_SETS[bin_name]
 
         bin_db_file = f'{BIN_DB_BASEPATH}/{bin_name}.sqlite'
 
-        print(b)
+        print( 'bin: ')
+        pprint( b)
 
         bin_collector_count = {}
         bin_collector_sum = {}
@@ -58,34 +61,43 @@ def main():
 
         where = b['where']
         hm( f'SELECT * FROM {GRAND_DB_TABLENAME} {where}')
-        c.execute( f'SELECT * FROM {GRAND_DB_TABLENAME} {where}')
-        num_fields = len(c.description)
-        field_names = [i[0] for i in c.description]
+
+        # iter = prep_dbq_yield( GRAND_DB_TABLENAME, where)
+
+        # c.execute( f'SELECT * FROM {GRAND_DB_TABLENAME} {where}')
+        # num_fields = len(c.description)
+        # field_names = [i[0] for i in c.description]
         
-        print(num_fields)
-        print(field_names)
+        # print(num_fields)
+        # print(field_names)
 
         # Get the indexes of the fields we want to bin
-        bin_fields = []
-        for i in range( 0, len(c.description)):
-            if c.description[i][0] in b['bin_base_cols']:
-                bin_fields.append( i)
+        # bin_fields = []
+        # for i in range( 0, len(c.description)):
+        #     if c.description[i][0] in b['bin_base_cols']:
+        #         bin_fields.append( i)
 
-        hm( bin_fields)
-        hm( c.rowcount)
+        # hm( bin_fields)
+        # exit(8)
+        # hm( c.rowcount)
 
-        what_field_index = 0
-        if b['what'] == 'avg':
-            for i in range( 0, len(c.description)):
-                if c.description[i][0] == b['what_field']:
-                    what_field_index = i
+        # what_field_index = 0
+        # if b['what'] == 'avg':
+        #     for i in range( 0, len(c.description)):
+        #         if c.description[i][0] == b['what_field']:
+        #             what_field_index = i
 
         
+        hm( 'Counting # of rows for this bin ...')
+        total_row_count = get_pg_count_star( GRAND_DB_TABLENAME, where)
         row_count = 0
-        for row in c:
+        iter = prep_dbq_yield( f"SELECT * FROM {GRAND_DB_TABLENAME} {where}")
+        bar = alive_it( iter, total = total_row_count)
+        
+        for row in bar:
             row_count += 1
             field_bins = []
-            for field in bin_fields:
+            for field in b['bin_base_cols']:
                 # Or should we round so that Sol comes in the middle of a box always?
                 field_bin = round( row[field] / b['step_size'])
                 field_bins.append( field_bin)
@@ -100,17 +112,17 @@ def main():
             
             if b['what'] == 'avg':
                 if tup in bin_collector_sum:
-                    bin_collector_sum[ tup] += row[what_field_index] 
+                    bin_collector_sum[ tup] += row[ b['what_field'] ] 
                 else:
-                    bin_collector_sum[ tup] = row[what_field_index]
+                    bin_collector_sum[ tup] = row[ b['what_field'] ]
                 bin_collector_avg[ tup] = bin_collector_sum[ tup] / bin_collector_count[ tup]
             
-                if row_count % 100000 == 0:
+                if row_count % 10**6 == 0:
                     hm( f'Bin {bin_name}: {row_count:,} rows done so far ...')
                     sorted_arr = sorted( bin_collector_avg.items(), key=lambda item: item[1])
                     preview_array( sorted_arr)
             else:
-                if row_count % 100000 == 0:
+                if row_count % 10**6 == 0:
                     hm( f'Bin {bin_name}: {row_count:,} rows done so far ...')
                     sorted_arr = sorted( bin_collector_count.items(), key=lambda item: item[1])
                     preview_array( sorted_arr)
@@ -163,12 +175,20 @@ def main():
         print( df)
         conn = sqlite3.connect( bin_db_file)
         try:
-            df.to_sql( bin_name, conn, if_exists='replace', index=False)
-            records = len( df)
-            hm( f'Data stored to {bin_db_file} ({records} rows)')
+            df_old = pd.read_sql( f'select * from "{bin_name}"', conn)
+            print( 'df_old', df_old)
+            # compare the two and only write if different
+            if df.equals( df_old):
+                hm( 'Data already present in current DB, no need to rewrite :)', '+')
+                pass
+            else:
+                hm('Looks different, storing data ...', '-')
+                df.to_sql( bin_name, conn, if_exists='replace', index=False)
+                records = len( df)
+                hm( f'Data stored to {bin_db_file} ({records} rows)')
             # exit(4)
         except sqlite3.IntegrityError as e:
-            hm( f'file {source_db}, seems loaded already (integrity error).','-')
+            # hm( f'file {source_db}, seems loaded already (integrity error).','-')
             # print('_', end='')
             # print('INTEGRITY ERROR\n')
             # print(traceback.print_exc())
@@ -184,7 +204,7 @@ def main():
             # df.to_sql(  bin_db_file)
         
         continue
-    exit(9)
+    exit(0)
     '''
             cur_level = bin_collector
             bin_index_tuple = []

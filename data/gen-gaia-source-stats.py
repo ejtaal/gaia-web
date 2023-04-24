@@ -1,24 +1,10 @@
 #!/usr/bin/env python3
 
-def hm( msg, pre = '*'):
-    # Hacker message, what else ;)
-    CYAN = '\033[96m'; GREEN = '\033[92m'; YELLOW = '\033[93m'
-    RED = '\033[91m'; ENDC = '\033[0m'; BOLD = '\033[1m'
-    if pre == '!': msg = f"{RED}[{pre}] {msg}"
-    elif pre == '+': msg = f"{GREEN}[{pre}] {msg}"
-    elif pre == '-': msg = f"{YELLOW}[{pre}] {msg}"
-    else: msg = f"{CYAN}[{pre}] {msg}"
-    print( f"{BOLD}{msg}{ENDC}")
-    
-
 import glob
 import sqlite3
 import traceback
+
 import sys
-
-from alive_progress import *
-config_handler.set_global( length=60, spinner='classic', enrich_print = False, file = sys.stderr, force_tty = True)
-
 sys.path.append('../')
 from gaia_web_include import *
 
@@ -64,7 +50,8 @@ def main():
 
     dataset_size_lower_limit = 1 * 10**6
 
-    dataset_size_limit = 5 * 10**6
+    # dataset_size_limit = 10 * 10**6
+    dataset_size_limit = 50 * 10**6
 
     # limit_triggered = False
 
@@ -77,20 +64,34 @@ def main():
             if dist_limit_reached:
                 continue
             # hm( dist)
-            for abs_mag in [ -7, -5, -3, -1, 0, 1, 2, 3, 4, 5, 6, 8, 10, 15]:
+            for abs_mag in [ -7, -5, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 8, 10, 15]:
                 if abs_mag_limit_triggered or dist_limit_reached:
                     continue
 
                 COUNT_QUERY=f"""
-                    WHERE DIST < {dist} and px_over_err > {px_over_err} and abs_mag < {abs_mag}"""
+                    WHERE dist < {dist} and px_over_err > {px_over_err} and abs_mag < {abs_mag}"""
                 params = { 'px_over_err': px_over_err, 'dist': dist, 'abs_mag': abs_mag}
                 # hm( f"Counting stars in parameter set {params} ...")
-                dataset_num = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME, COUNT_QUERY)
+                '''
+Index ordering research :
+
+Index 1:
+(px_over_err ASC NULLS LAST, dist ASC NULLS LAST, abs_mag ASC NULLS LAST)
+runtime: 1h22m (searching up to 10^6 stars)
+
+Index 2:
+(px_over_err DESC NULLS FIRST, dist ASC NULLS LAST, abs_mag ASC NULLS LAST)
+runtime: 1h27m (searching up to 10 * 10^6 stars)
+runtime: (searching up to 50 * 10^6 stars)
+                '''
+
+
+                dataset_num = get_pg_count_star( GRAND_DB_TABLENAME, COUNT_QUERY)
                 if ( px_over_err, abs_mag) in dist_px_limit:
-                    if dist_px_limit[( px_over_err, abs_mag)] == dataset_num:
-                        hm( f'dist_px_limit[( {px_over_err}, {abs_mag})] == {dataset_num:,} @ dist {dist}', '-')
+                    if dist_px_limit[( px_over_err, abs_mag)] > (0.9 * dataset_num):
+                        hm( f'dist_px_limit[( {px_over_err}, {abs_mag})] > 0.9 * {dataset_num:,} @ dist {dist}', '-')
                         # Not going to find any further stars so need to skip to next px_over_err
-                        hm( f'Distance limit of px_over_err {px_over_err} reached at distance {dist}. Skipping to next parameter set.', '-')
+                        hm( f'Practical distance limit of px_over_err {px_over_err} reached at distance {dist}. Skipping to next parameter set.', '-')
                         dist_limit_reached = True
                         continue
                 
@@ -103,3 +104,7 @@ def main():
                     print( f"Parameter set {params} : {dataset_num:,} stars.")
                 
                 dist_px_limit[( px_over_err, abs_mag)] = dataset_num
+
+if __name__ == "__main__":
+    # stuff only to run when not called via 'import' here
+    main()

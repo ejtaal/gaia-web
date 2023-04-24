@@ -1,15 +1,6 @@
 #!/usr/bin/env python3
 
-def hm( msg, pre = '*'):
-    # Hacker message, what else ;)
-    CYAN = '\033[96m'; GREEN = '\033[92m'; YELLOW = '\033[93m'
-    RED = '\033[91m'; ENDC = '\033[0m'; BOLD = '\033[1m'
-    if pre == '!': msg = f"{RED}[{pre}] {msg}"
-    elif pre == '+': msg = f"{GREEN}[{pre}] {msg}"
-    elif pre == '-': msg = f"{YELLOW}[{pre}] {msg}"
-    else: msg = f"{CYAN}[{pre}] {msg}"
-    print( f"{BOLD}{msg}{ENDC}")
-    
+
 SOURCE_DB_PATH = "./source"
 GRAND_DB_FULLPATH = "./grand/Grand_gaia_source.sqlite"
 GRAND_DB_TABLENAME = 'grand_gaia_source'
@@ -22,8 +13,12 @@ import traceback
 import sys
 import numpy as np
 
+sys.path.append('../')
+from gaia_web_include import *
+
 from alive_progress import *
 config_handler.set_global( length=60, spinner='classic', enrich_print = False, file = sys.stderr, force_tty = True)
+
 
 
 def get_sqlite3_count_star( db_filename, table_name, where_clause=''):
@@ -35,14 +30,36 @@ def get_sqlite3_count_star( db_filename, table_name, where_clause=''):
     count_star = rows[0][0]
     return count_star
 
-def update_grand_db( grand_db, source_db):
+def sourceid_present_in_granddb( sqlite_db):
+    conn = sqlite3.connect( sqlite_db)
+    cur = conn.cursor()
+    # cur.execute( f"select count(1) from {table_name}")
+    cur.execute( f"select source_id from 'gaia_source_filtered' limit 1")
+    rows = cur.fetchall()
+    # print(rows)
+    # exit(7)
+    s_id = rows[0][0]
 
-    bigdb_conn = sqlite3.connect( grand_db)
+    row_count = get_pg_count_star( GRAND_DB_TABLENAME, f"where source_id = {s_id}")
+    if row_count == 1:
+        return True
+    return False
+
+    count_star = rows[0][0]
+    return count_star
+
+# def update_grand_db( grand_db, source_db):
+def update_grand_db( source_db):
+
+    csv_file = source_db.replace('.sqlite', '') + '.csv'
+
+    # bigdb_conn = sqlite3.connect( grand_db)
     # print( sqlite_db)
     cnx = sqlite3.connect( source_db)
     # This is ok as there should only be up to 500k rows in it per file
     df = pd.read_sql_query("SELECT * FROM 'gaia_source_filtered'", cnx)
     # print( df)
+    cnx.close()
 
     # for source_id in [ 0, -1]:
     # Check if first and last source_id are present in the grand_gaia_source
@@ -77,39 +94,54 @@ def update_grand_db( grand_db, source_db):
     # //   D – Distance between the star and Earth, measured in parsecs.
     df['abs_mag'] = df['mag'] + 5 - 5 * np.log10( df['dist'] * lightyear_p_parsec)
 
-    filtered_stars = df
+    filtered_stars = df[ df['px_over_err'] >= 5]
     save_db_stars = filtered_stars[ ['source_id', 'px_over_err', 'x', 'y', 'z', 'dist', 'color', 'abs_mag']]
     # save_db_stars = filtered_stars[ [ 'x', 'y', 'z', 'color', 'abs_magnitude']]
     # print( filtered_stars)
     # print( save_db_stars)
     # exit(8)
 
-
-    print( f"[+] Writing filtered stars to {grand_db} ...")
-   
-    # added_to_db = 0
-    try:
-        save_db_stars.to_sql( GRAND_DB_TABLENAME, bigdb_conn, if_exists='append', index=False)
-        return len(save_db_stars)
-        # exit(4)
-    except sqlite3.IntegrityError as e:
-        hm( f'file {source_db}, seems loaded already (integrity error).','-')
-        # print('_', end='')
-        # print('INTEGRITY ERROR\n')
-        # print(traceback.print_exc())
-        return 0
-    except sqlite3.Error as er:
-        print('SQLite error: %s' % (' '.join(er.args)))
-        print("Exception class is: ", er.__class__)
-        print('SQLite traceback: ')
-        exc_type, exc_value, exc_tb = sys.exc_info()
-        print(traceback.format_exception(exc_type, exc_value, exc_tb))
-    finally:
-        pass
-
-    # exit(7)
+    if True:
+        print( f"[+] Writing filtered stars to CSV ...")
+        save_db_stars.to_csv( csv_file, index = False, float_format='%.3f')
+        return len( save_db_stars)
+        # exit(1)
     
-    cnx.close()
+
+
+    if False:
+        print( f"[+] Writing filtered stars to Grand DB ...")
+    
+        # added_to_db = 0
+        try:
+            # save_db_stars.to_sql( GRAND_DB_TABLENAME, bigdb_conn, if_exists='append', index=False)
+            pandas_append_to_table(
+                save_db_stars,
+                GRAND_DB_TABLENAME,
+                max_failures=1
+                , pkey='source_id' # When doing full import, remove this as will reduce time from 12 -> 6 hours
+            # save_db_stars.to_sql( GRAND_DB_TABLENAME, bigdb_conn, if_exists='append', index=False)
+
+            ) 
+            return len(save_db_stars)
+            # exit(4)
+        except sqlite3.IntegrityError as e:
+            hm( f'file {source_db}, seems loaded already (integrity error).','-')
+            # print('_', end='')
+            # print('INTEGRITY ERROR\n')
+            # print(traceback.print_exc())
+            return 0
+        except sqlite3.Error as er:
+            print('SQLite error: %s' % (' '.join(er.args)))
+            print("Exception class is: ", er.__class__)
+            print('SQLite traceback: ')
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            print(traceback.format_exception(exc_type, exc_value, exc_tb))
+        finally:
+            pass
+
+    
+    # exit(7)
 
 def main():
     
@@ -121,7 +153,7 @@ def main():
     SQlite_db_files=glob.glob( f"{SOURCE_DB_PATH}/GaiaSource_*.sqlite", recursive=False)
     # print (SQlite_db_files)
     # for sqlite_db in []:
-    files_bar = alive_it(SQlite_db_files)
+    files_bar = alive_it(SQlite_db_files, precision = 2)
     for sqlite_db in files_bar:
         # print( sqlite_db)
         count_star = get_sqlite3_count_star( sqlite_db, 'gaia_source_filtered')
@@ -146,11 +178,13 @@ def main():
 
     grand_total_rows = 0
     try:
-        hm( f'Counting stars in {GRAND_DB_FULLPATH} table grand_gaia_source ...')
-        row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+        hm( f'Counting stars in PG table {GRAND_DB_TABLENAME} ...')
+        # get_pg_count_star
+        row_count = get_pg_count_star( GRAND_DB_TABLENAME)
         grand_total_rows = row_count
     except:
-        exit(1)
+        hm('Error, table not present?', '-')
+        # exit(1)
         pass
     finally:
         # print( 'grand total: ', grand_total_rows)
@@ -166,15 +200,41 @@ def main():
         # hm('Updating the Grand DB ...')
         hm( 'Attempting to fill data from latest files ...')
     
-        files_bar = alive_it(SQlite_db_files)
+        # with ProcessPoolExecutor( max_workers = 5 ) as PoolParty:
+        #     # PoolParty.map(pandas_smandas, gather_file_names())
+        #     PoolParty.map( update_grand_db, SQlite_db_files)
+
+        # files_not_present = []
+
+        # # This whole section only works if we have indexes present
+        # for sqlite_db in SQlite_db_files:
+        #     # stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+        #     # First do superquick check to see if source_id is present or not,
+        #     # Assuming that either all of the sources files ones are present or none
+        #     if sourceid_present_in_granddb( sqlite_db):
+        #         # assume the whole file has been fully imported
+        #         print('_', end='')
+        #     else:
+        #         print('+', end='')
+        #         files_not_present.append( sqlite_db)
+        #     # files_bar.fin
+
+        # files_bar = alive_it(files_not_present)
+        # for sqlite_db in files_bar:
+        files_bar = alive_it( SQlite_db_files)
         for sqlite_db in files_bar:
-            stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+            # stars_added = update_grand_db( GRAND_DB_FULLPATH, sqlite_db)
+            # First do superquick check to see if source_id is present or not,
+            # Assuming that either all of the sources files ones are present or none
+            stars_added = 0
+            stars_added = update_grand_db( sqlite_db)
             if stars_added > 0:
-                row_count = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME)
+                row_count = get_pg_count_star( GRAND_DB_TABLENAME)
                 grand_total_rows = row_count
                 hm( f'Added {stars_added} from {sqlite_db}', '+')
             files_bar.text(f'Grand star count so far: {grand_total_rows:,} / {total_rows_in_sources:,}') 
             # files_bar.fin
+
 
         hm(f'Grand star count: {grand_total_rows:,} / {total_rows_in_sources:,}') 
 

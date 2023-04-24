@@ -128,7 +128,8 @@ def write_bin_sets():
         bin_db_file = f'{BIN_DB_BASEPATH}/{bin_name}.sqlite'        
 
         conn = sqlite3.connect( bin_db_file)
-        df = pd.read_sql_query( f'SELECT * FROM {bin_name}', conn)
+        # quotes needed for dashes in table names.
+        df = pd.read_sql_query( f'SELECT * FROM "{bin_name}"', conn)
         values = df[ b['what_field']].to_list()
         # print( values)
         preview_array( sorted( values))
@@ -174,8 +175,8 @@ def gen_data_set_index():
 
 def main():
     
+
     gen_data_set_index()
-    # exit(2)
 
 
     hm('Writing regular sets ...')
@@ -201,17 +202,12 @@ def main():
 
     # hm( f"Total source star count matches grand DB: {total_rows_in_sources:,}", '+')
 
-    bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
+    # bigdb_conn = sqlite3.connect( GRAND_DB_FULLPATH)
+    suitable_sets = []
 
     for dataset_name in GAIAWEB_DATA_SETS.keys():
-        hm( f"  ... Gaia-web dataset {dataset_name} ...")
 
         COUNT_QUERY=f"""SELECT count(1)
-        FROM {GRAND_DB_TABLENAME}
-        {GAIAWEB_DATA_SETS[dataset_name]}"""
-
-        SQL_QUERY=f"""SELECT 
-        {SELECT_ROUNDED_CLAUSE} 
         FROM {GRAND_DB_TABLENAME}
         {GAIAWEB_DATA_SETS[dataset_name]}"""
 
@@ -231,35 +227,51 @@ def main():
         - 
         '''
 
-        hm( "Counting stars in this set...")
-        dataset_num = get_sqlite3_count_star( GRAND_DB_FULLPATH, GRAND_DB_TABLENAME, GAIAWEB_DATA_SETS[dataset_name])
+        hm( f"Counting stars in set {dataset_name} ...")
+        dataset_num = get_pg_count_star( GRAND_DB_TABLENAME, GAIAWEB_DATA_SETS[dataset_name])
 
         hm( f"Dataset {dataset_name} has {dataset_num:,} stars.")
-        if ( dataset_num > 5 * 10 **6):
-            hm( f'More 5m star, adjust query to reduce size:\n{COUNT_QUERY}', '-')
+        size_limit = 10 * 10**6
+        if ( dataset_num < size_limit):
+            hm( f'More than {size_limit:,} stars, adjust query to reduce size:\n{COUNT_QUERY}', '-')
         else:
-            hm( "Suitable for a dataset, extracting data ...", '+')
-            df = pd.read_sql_query( SQL_QUERY, bigdb_conn)
-            print(df)
-            # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-            df.sort_values( 'dist', inplace=True, ignore_index=True)
-            # print( 'avg: ', statistics. ( values))
-            print(df)
+            hm( "Suitable for a dataset, saving to list for extraction.", '+')
+            suitable_sets.append( dataset_name)
 
-            if not os.path.exists( f'{SET_JS_BASEPATH}{dataset_name}'):
-                os.mkdir( f'{SET_JS_BASEPATH}{dataset_name}')
+    hm( f"Extracting datasets ...")
+    for dataset_name in suitable_sets:
+        hm( f"  ... Gaia-web dataset {dataset_name}, extracting from SQlite ...")
 
-            js_prefix = 'var data = '
-            df_write_gaia_set( dataset_name, js_prefix, df, ['x','y','z','color','abs_mag'])
-            # exit(8)
+        SQL_QUERY=f"""SELECT 
+        {SELECT_ROUNDED_PG_CLAUSE} 
+        FROM {GRAND_DB_TABLENAME}
+        {GAIAWEB_DATA_SETS[dataset_name]}"""
 
-            # js_files = []
-            # for file_index in range(1,101):
-            """
-            cursor.fetchall() fetches all results into a list first.
-            Instead, you can iterate over the cursor itself:
-            """
+        print( SQL_QUERY)
+        df = pd.read_sql_query( SQL_QUERY, con=engine)
+        print(df)
+        # exit(5)
+        # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
+        df.sort_values( 'dist', inplace=True, ignore_index=True)
+        # print( 'avg: ', statistics. ( values))
+        print(df)
+
+        if not os.path.exists( f'{SET_JS_BASEPATH}{dataset_name}'):
+            os.mkdir( f'{SET_JS_BASEPATH}{dataset_name}')
+
+        hm( f"  ... Gaia-web dataset {dataset_name}, writing to JS files ...")
+        js_prefix = 'var data = '
+        df_write_gaia_set( dataset_name, js_prefix, df, ['x','y','z','color','abs_mag'])
+        # exit(8)
+
+        # js_files = []
+        # for file_index in range(1,101):
+        """
+        cursor.fetchall() fetches all results into a list first.
+        Instead, you can iterate over the cursor itself:
+        """
                 
+    write_bin_sets()
     # do_stuff_with_row
 
         # dataset_file = f"{SOURCE_DB_PATH}/{dataset_name}.js"
