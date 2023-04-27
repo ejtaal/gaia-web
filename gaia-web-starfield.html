@@ -175,10 +175,10 @@ Please be patient as star data is loaded in the background.
 				gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.5);
                 // if ( (gl_PointSize > 1.0) && (gl_PointSize < 3.0)) gl_PointSize = 3.0;
                 
-                if ( gl_PointSize < 7.0) {
+                if ( gl_PointSize < 6.0) {
                     //vColor = vColor * (0.5 + gl_PointSize / 14.0);
                     //vColor = vColor * 0.9;
-                    gl_PointSize = 3.5 + gl_PointSize / 2.0;
+                    gl_PointSize = 3.0 + gl_PointSize / 2.0;
                 }
 
 				gl_Position = projectionMatrix * mvPosition;
@@ -210,9 +210,11 @@ Please be patient as star data is loaded in the background.
         <script type="module">
 // Uhm yeah the HTML ain't gonna dictate our indentation. Who does it think it is!?!?
 import * as THREE from 'three';
+// THREE.Object3D.DefaultUp.set(0, 0, 1);
 
 import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 
 // import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 
@@ -303,7 +305,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 // };
 
 
-let data_set = 'px50_2000ly_10mag'
+let data_set = 'px80_2000ly_15mag'
 let prev_data_set = data_set
 // let prev_data_set = 'star_density'
 let data_set_type = ''
@@ -344,11 +346,13 @@ let tour_targets = [
     [ -784, 190, 1336, '?'],
     [ -108, -1263, -800, 'Messier 6, Butterfly Cluster'],
 //    [ , , , ''],
-    [ 489, 730,  553, 'IC 348'], // <- is ths really something?
+    [ 489, 730,  553, 'IC 348'], // <- is this really something?
     [ 515, 340, 1055, '?'],
     [ 907, 779, 1102, 'Messier 34'],
     [ 125, 1219, -130, 'Trapezium Cluster?'],
     [ 135, 1260, -115, 'Trapezium Cluster 2?'],
+    [ -18.6,-746.4,-517.6, 'Messier 7'],
+    
     [ 144.4, 1113.5, 53.8, '?'],
     [ -266.2, 1239.2,1100.6, '?' ],
     [ -2176.2, -4843.8, -2653.4, 'Messier 4' ],
@@ -359,6 +363,7 @@ let tour_targets = [
     [ -1710, 3209, -2895, 'Behind NGC 2451 A/B?'],
     [ -1875, 2023, 576, 'Messier 67'],
     [ -784, 194, -1333, 'NGC 3532, Wishing Well Cluster '],
+    [ 407, 2954, 2144, 'Messier 38'],
     /*
     [ , , , ''],
     [ , , , ''],
@@ -367,6 +372,10 @@ let tour_targets = [
     [ ], 
     */
     ];
+
+let label_font;
+let labels_loaded = false;
+let label_meshes = [];
 
 let tour_orbit_angle = 0;
 let tour_orbit_dec = 0;
@@ -425,6 +434,46 @@ var lightyear_p_parsec = 3.261563777
 
 init();
 animate();
+
+function icrs_to_threejs( c, reverse = false) {
+    /*
+    Three.js and other GL implementations use a convention of
+    Y = up, Z = back/forward
+    While ICRS cartesian would be:
+    Z = up, X = back/forward
+    Hence we need to transform ICRS <-> Three.js coords throughout.
+    What fun and opportunity for bugs to creep in, groan :'(
+        
+    Further info:
+    https://gkjohnson.github.io/threejs-sandbox/basis-transform/
+
+      Z    
+      |    
+      |    
+      .----- Y
+     /     
+   X       
+   
+   Needs to become and vice verse:        
+      Y    
+      |    
+      |    
+      .----- X
+     /     
+   Z       
+
+
+    */
+    
+    var transposed = []
+    if (reverse) transposed = [ c[2], c[0], c[1] ];
+    else         transposed = [ c[1], c[2], c[0] ];
+    // console.log( c, transposed)
+    return transposed;
+
+
+
+}
 
 function add_nebulae_to_scene( scene, nebulae_data) {
     console.log('Entering nebulae....')
@@ -826,6 +875,101 @@ function add_cubes_to_scene( scene, cube_data) {
     // }
 }
 
+function add_labels_to_scene( scene, labels) {
+    
+    var line_points = [];
+    var i = 0;
+    var new_line = []
+    // var poi_dist = 0.2;
+    // var text_size = 0.2;
+    var poi_dist = 4;
+    var text_size = 1;
+
+    var l;
+
+
+    // const message = '   Three.js\nSimple text.';
+    const message = 'TEST';
+
+    // const loader = new FontLoader();
+    // loader.load( 'three.js/jsm/fonts/helvetiker_regular.typeface.json', function ( font ) {
+
+    // const color = 0x006699;
+    const color = 0x60FF60;
+
+    const matDark = new THREE.LineBasicMaterial( {
+        color: color,
+        side: THREE.DoubleSide
+    } );
+
+    const matLite = new THREE.MeshBasicMaterial( {
+        color: color,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide
+    } );
+    // })
+
+
+    var tjs_c = [];
+
+    for( i = 0; i < labels.length; i += 1) {
+        l = labels[i]
+        new_line = []
+        tjs_c = icrs_to_threejs( [l[0] , l[1] , l[2] ])
+	    new_line.push( new THREE.Vector3( tjs_c[0] + poi_dist, tjs_c[1] + poi_dist, tjs_c[2] + poi_dist) );
+	    new_line.push( new THREE.Vector3( tjs_c[0] + poi_dist * 2, tjs_c[1]+ poi_dist * 2, tjs_c[2] + poi_dist * 2) );
+	    new_line.push( new THREE.Vector3( tjs_c[0] + poi_dist * 3, tjs_c[1] + poi_dist * 2, tjs_c[2] + poi_dist * 3) );
+        // line_points.push( new_line)
+
+        const line_geometry = new THREE.BufferGeometry().setFromPoints( new_line );
+        const material = new THREE.LineBasicMaterial( { color: 0x60FF60 } );
+        /* const line = new THREE.Line( geometry, material ); */
+        const three_line = new THREE.Line( line_geometry, material );
+        scene.add( three_line)
+
+        // const shapes = font.generateShapes( message, 100 );
+        const shapes = label_font.generateShapes( l[3], text_size );
+
+        const geometry = new THREE.ShapeGeometry( shapes );
+
+        geometry.computeBoundingBox();
+
+        const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
+
+        // geometry.translate( xMid +l[0] + poi_dist * 3, l[1] + poi_dist * 3, l[2] + poi_dist * 3);
+        geometry.translate( xMid, 0, 0);
+    
+
+        // make shape ( N.B. edge view not visible )
+
+        const text = new THREE.Mesh( geometry, matDark );
+        label_meshes.push( text)
+        // text.position.z = - 150;
+
+        text.position.x = tjs_c[0] + poi_dist * 3
+        text.position.y = tjs_c[1] + poi_dist * 2 + 0.2;
+        text.position.z = tjs_c[2] + poi_dist * 3;
+        scene.add( text );
+
+
+    };
+    labels_loaded = true;    
+
+}
+
+function fix_labels( ) {
+    // console.log('fix_labels() ...')
+    if (labels_loaded) {
+        // rotate them towards the camera
+        for (var i = 0; i < label_meshes.length; i++) {
+            // console.log( 'fix label: ', i)
+            // label_meshes[i].lookAt( camera.position );
+            label_meshes[i].quaternion.copy(camera.quaternion);;
+        }
+    }
+
+}
 
 function add_stars_to_scene( scene, star_coords) {
     console.log('Entering stars ....')
@@ -857,6 +1001,9 @@ function add_stars_to_scene( scene, star_coords) {
     var abs_magnitude;
     var x, y, z;
     var temperature_fudge_factor = 1.4;
+    var hsl = {};
+    var star_size;
+    var tjs_xyz = [];
 
     for ( var i = 0; i < star_coords.length; i += 1) {
 
@@ -866,14 +1013,14 @@ function add_stars_to_scene( scene, star_coords) {
         veff_color = star_coords[i][3];
         abs_magnitude = star_coords[i][4];
 
-        if (
-               (x > -1) && (x < 1)
-            && (y > -1) && (y < 1)
-            && (z > -1) && (z < 1)
-            ) console.log('xyz: ', x, y, z);
+        // if (
+        //        (x > -1) && (x < 1)
+        //     && (y > -1) && (y < 1)
+        //     && (z > -1) && (z < 1)
+        //     ) console.log('xyz: ', x, y, z);
 
         // TODO: Add filtering based on GUI options selected
-        distance = Math.sqrt( x**2 + y**2 + z**2)
+        // distance = Math.sqrt( x**2 + y**2 + z**2)
         
         // if (distance > 2500) continue;
         // if ( stars_filter == 'da_hood')
@@ -918,11 +1065,17 @@ function add_stars_to_scene( scene, star_coords) {
         if (star_size > 3) star_size = 3;
         if (star_size < 0.2) star_size = 0.2;
         */
-        // With the shader material it's better to make it size 0 - 10
+        // With the shader material it's better to make it size 0 - 10?
         // spread over the absolute magitude bucket sized above
-        var star_size = (10 - parseInt(abs_magnitude)) / 2
+        // var star_size = (10 - parseInt(abs_magnitude)) / 2
+        // Or maybe a more exponential size is better given magnitude's exponential scale?
+        star_size = (10 - parseInt(abs_magnitude)) / 2
+        // star_size = star_size ** 2 / 10
+        star_size = star_size ** 3 / 100
+
         if (star_size > 10) star_size = 10;
-        if (star_size < 2) star_size = 2;
+        if (star_size < 1) star_size = 1;
+
         sizes.push( star_size)
 
         // initialize bucket if needed:
@@ -935,7 +1088,8 @@ function add_stars_to_scene( scene, star_coords) {
         // }
         
         // size_buckets[ star_size]['positions'].push( x, y, z);
-        positions.push( x, y, z);
+        tjs_xyz = icrs_to_threejs( [x, y, z])
+        positions.push( tjs_xyz[0], tjs_xyz[1], tjs_xyz[2]);
         if (distance > star_max_dist) star_max_dist = distance;
 
 
@@ -1003,6 +1157,18 @@ function add_stars_to_scene( scene, star_coords) {
             // 	console.log( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
             // }
             color.setRGB( red*dimming_factor/255, green*dimming_factor/255, blue*dimming_factor/255);
+            color.getHSL( hsl)
+            // color.setHSL( hsl.h, (hsl.s + 1) / 2, (hsl.l + 0.5) / 2)
+            // color.setHSL( hsl.h, (hsl.s + 1.0) / 2.0, hsl.l)
+            color.setHSL( hsl.h, hsl.s + 0.05, hsl.l - 0.1)
+
+            // target — the result will be copied into this Object. Adds h, s and l keys to the object (if not already present).
+
+            // Convert this Color's r, g and b values to HSL format and returns an object of the form:
+            // { h: 0, s: 0, l: 0 }
+
+            // Move lightness closer to halfway (pure color) and saturation closed to 1 (brighter colour)
+            
         }
         colors.push( color.r, color.g, color.b );
     };
@@ -1172,6 +1338,7 @@ function init() {
     perspectiveCamera.position.x = -200;
     perspectiveCamera.position.y = 50
     perspectiveCamera.position.z = 10;
+    // perspectiveCamera.up.set(0,0,1);
 
     perspectiveCamera.lookAt( 200, 100, 100 );
 
@@ -1267,6 +1434,27 @@ function init() {
         location.replace("#" + hash_value_here);
 
     }, 2000);
+
+    const fl = new FontLoader().load( 'three.js/jsm/fonts/helvetiker_regular.typeface.json',
+        function(font) {
+            label_font = font;
+        })
+    // font = new FontLoader().parse( 'three.js/jsm/fonts/helvetiker_regular.typeface.json')
+
+    const interval4 = setInterval(function() {
+        // method to be executed;
+        if (label_font !== undefined) {
+            if (!labels_loaded) {
+                add_labels_to_scene( scene, [
+                    [ 0, 0, 0, 'Sol (you are here)']
+                ].concat(tour_targets)
+                )
+            }
+            fix_labels( );
+        }
+        // console.log(label_font)
+    }, 1000);
+
 
 
     var gui_drop_down = {}
@@ -1516,16 +1704,15 @@ function init() {
             //     break;
 
             case 'KeyB':
-                camera.position.x = -10;
-                camera.position.y = -2;
-                camera.position.z = -6;
-                // camera.position.x = 0;
-                // camera.position.y = 0;
-                // camera.position.z = 0;
+                // camera.position.x = -10;
+                // camera.position.y = -2;
+                // camera.position.z = -6;
+                camera.position.x = camera.position.y = camera.position.z = -3;
                 // // File                                sources  ra_min      ra_max      dec_min     dec_max
                 // GaiaSource_376186-377043.csv.fapec  516919   61.877817   92.808166   0.008648    19.464846
                 // So somewhere near ra 61.877817, dec 19.464846: Hyades + Aldebaran
                 camera.lookAt( 60, 200, 44);
+
                 break;
 
 
@@ -1607,6 +1794,7 @@ function reload_all_stars() {
 
     // Reset scene
     scene.remove.apply(scene, scene.children);
+    labels_loaded = false;
     all_stars = {}
     total_stars_in_scene = 0
     total_cubes_in_scene = 0
@@ -1618,10 +1806,12 @@ function reload_all_stars() {
     // Add Sol
     add_stars_to_scene( scene, [
     // [ 1, 1, 1, 1, -3],
-    [ 0, 0, 0, 1, -10],
+    [ 0, 0, 0, 1, 5],
     // [ 5, 5, 5, 0.5, -10],
     // [ 10, 20, 10, 2, -10]
     ])
+
+
 
     const axesHelper = new THREE.AxesHelper( 100 );
     scene.add( axesHelper );
@@ -1731,7 +1921,7 @@ function tour_update( camera) {
     if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
         tour_started = true;
         tour_busy = true;
-        var t = tour_targets[ tour_target_index];
+        var t = icrs_to_threejs( tour_targets[ tour_target_index]);
         tour_target_name = t[3]
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
@@ -1854,8 +2044,8 @@ function tour_update( camera) {
             // tour_busy = false;
             // tour_index = 0; // Will create next tour_stops[] for next tour_targets item.
         }
-        statusline = 'Tour: ' + tour_name 
-        + ', stop # ' + (tour_target_index+1)
+        statusline = 'Tour: ' + tour_name
+        + '\n  stop # ' + (tour_target_index+1)
         + ': ' + tour_target_name
     }
     return 0
@@ -1888,6 +2078,9 @@ function animate() {
     const time = performance.now();
 
     camera = perspectiveCamera;
+    
+    // camera.up.set(0,0,1);
+
     
     perspectiveCamera.getWorldDirection( camera_vector );
 
@@ -2001,14 +2194,17 @@ function animate() {
     // console.log('render now')
     renderer.render( scene, camera );
 
-    var dist = Math.sqrt( camera.position.x**2 + camera.position.y**2 + camera.position.z**2)
+    var tjs_campos = [ camera.position.x, camera.position.y, camera.position.z]
+    // convert Three.js cam positions to ICSR coords
+    var cam_c = icrs_to_threejs( tjs_campos, true)
+    var dist = Math.sqrt( cam_c[0]**2 + cam_c[1]**2 + cam_c[2]**2)
 
-    var deg = Math.asin( camera.position.z / dist);
+    var deg = Math.asin( cam_c[2] / dist);
     var deg_degrees = deg * 180 / Math.PI;
     var deg_mins = (deg_degrees - Math.floor( deg_degrees)) * 60;
 
     
-    var RA = Math.atan2( camera.position.y, camera.position.x);
+    var RA = Math.atan2( cam_c[1], cam_c[0]);
     if (RA < 0) RA = Math.PI * 2 + RA;
     var RA_degrees = RA * 180 / Math.PI;
     var RA_hours = Math.floor( RA_degrees / 15)
@@ -2018,9 +2214,9 @@ function animate() {
     document.getElementById('statusline').innerText = 
     '[ Camera data ]\n'
         + 'Position (x,y,z) in ly:\n  ' 
-        + camera.position.x.toFixed(2) + ', '
-        + camera.position.y.toFixed(2) + ', ' 
-        + camera.position.z.toFixed(2) 
+        + cam_c[0].toFixed(2) + ', '
+        + cam_c[1].toFixed(2) + ', ' 
+        + cam_c[2].toFixed(2) 
         + '\n'
         + 'Earth/Sol distance:\n  '
         + dist.toFixed(2) + ' ly =~ '
@@ -2038,10 +2234,10 @@ function animate() {
         + camera_vector.x.toFixed(2) + ', ' 
         + camera_vector.y.toFixed(2) + ', ' 
         + camera_vector.z.toFixed(2)
-        + '\nData set: ' 
-        + '  ' + data_set + '(' + data_set_type + ')'
-        + '\nTotal stars/cubes in scene: ' 
-        + '  ' + total_stars_in_scene.toLocaleString()+'/'+total_cubes_in_scene.toLocaleString()
+        + '\nData set:\n' 
+        + '   ' + data_set + ' (' + data_set_type + ')'
+        + '\nTotal stars/cubes in scene:\n  ' 
+        + total_stars_in_scene.toLocaleString()+'/'+total_cubes_in_scene.toLocaleString()
         + '\n' + statusline
         ;
 

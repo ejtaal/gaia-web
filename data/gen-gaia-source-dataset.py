@@ -231,8 +231,8 @@ def main():
         dataset_num = get_pg_count_star( GRAND_DB_TABLENAME, GAIAWEB_DATA_SETS[dataset_name])
 
         hm( f"Dataset {dataset_name} has {dataset_num:,} stars.")
-        size_limit = 10 * 10**6
-        if ( dataset_num < size_limit):
+        size_limit = 50 * 10**6
+        if ( dataset_num > size_limit):
             hm( f'More than {size_limit:,} stars, adjust query to reduce size:\n{COUNT_QUERY}', '-')
         else:
             hm( "Suitable for a dataset, saving to list for extraction.", '+')
