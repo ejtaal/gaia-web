@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from pprint import pprint
 import os
+import re
 
 from concurrent.futures import ProcessPoolExecutor
 
@@ -12,6 +13,10 @@ config_handler.set_global( length=60, spinner='classic', enrich_print = False, f
 # Don't seem to work, hmm:
 # stats (bool|str): [True] configures the stats widget (123.4/s, eta: 12s)
 # ↳ send a string with {rate} and {eta} to customize it
+
+DEG2RAD = np.pi / 180;
+
+lightyear_p_parsec = 3.261563777
 
 SOURCE_DB_PATH = "./source"
 SET_JS_BASEPATH = "./set-"
@@ -409,6 +414,65 @@ def check_before_write( filename, data, feedback = 'none'):
     fh.close()
     # print ( '=> {:s} : {:s} bytes written.'.format( filename, str(len(data))))
 
+def df_write_js_array( js_file, js_array_prefix, df, fields):
+
+    # Split the df in 100 parts and write them to the set directory accordingly
+    pd.set_option( 'display.max_columns',  1000)
+    pd.set_option( 'display.width',       32000)
+    pd.set_option( 'display.float_format', '{:.1f}'.format)
+    np.set_printoptions(threshold=np.inf)
+    np.set_printoptions(suppress=True)
+    # not working or only if lines become too long, not for joining them together?
+    np.set_printoptions( linewidth = 120)
+
+    # size = len( df)
+    # for element_idx in range( 0, 100):
+    #     start = int(element_idx / 100 * size)
+    #     stop = int((element_idx + 1) / 100 * size) - 1
+        # print( 'stop/start: ', start, stop)
+        # print( df.iloc[start:stop+1])
+        # Is that some old style string formatting??
+    # print( df[ fields])
+    print( df[ fields].values)
+    # js_array = str( df[ fields].values.tolist())
+    # np.list2
+    # js_array = np.array2string( np.asarray( df[ fields].values.tolist())
+    # fmt = {
+	#         'float_kind': lambda x: "%d" % x if round(x) == x else "%.1f" % x,
+	#         'complex_kind': lambda x: "%d" % x if round(x) == x else "%.1f" % x
+	#     }
+    
+    fmt = {
+	        'float_kind': lambda x: "%.1f" % x,
+	        'complex_kind': lambda x: "%.1f" % x,
+		    'object': lambda x: "%.1f" %x if isinstance( x, float) else "\"%s\"" % x
+	    }
+    
+    js_array = np.array2string( df[ fields].to_numpy()
+        , precision=4, separator=',' ,suppress_small=True
+        , formatter= fmt
+        , max_line_width=120
+	    # ,floatmode = 'fixed'
+	)
+    # js_array = df[ fields].to_string(
+	#     col_space=0,
+	#     index=False,
+	#     justify='unset'
+
+
+    # )
+    # , precision=4, separator=',' ,suppress_small=True
+    # , formatter= fmt
+    # , max_line_width=120
+    # ,floatmode = 'fixed'
+	# )
+    # print( js_array[:1000])
+    # exit(8)
+    
+    # js_file = f'{SET_JS_BASEPATH}{set_name}/{element_idx}.js'
+    check_before_write( js_file, js_array_prefix + js_array, feedback='char')
+    print('')
+
 
 def df_write_gaia_set( set_name, js_array_prefix, df, fields):
 
@@ -429,7 +493,7 @@ def df_write_gaia_set( set_name, js_array_prefix, df, fields):
         # Is that some old style string formatting??
         js_array = np.array2string( df[ fields].iloc[start:stop+1].values
             , precision=3, separator=',' ,suppress_small=True
-            , formatter={'float_kind':lambda x: "%d" % x if round(x) == x else "%.3f" % x }
+            , formatter={'float_kind':lambda x: "%d" % x if round(x) == x else "%.1f" % x }
             , max_line_width=120)
         # print( js_array)
         
@@ -446,7 +510,36 @@ def get_pg_count_star( table_name, where_clause=''):
     count = rows[0]['count']
     return count
 
+def ra_text_to_deg( ra_txt):
+    ra = 0
+    ra_m1 = re.match( r'(\d+)\^h\s+([\d\.]+)\^m', ra_txt )
+    if ra_m1:
+        # print( ra_m1.group(1))
+        # print( ra_m1.group(2))
+        ra += float( ra_m1.group(1)) * 15
+        ra += float( ra_m1.group(2)) * 15/60
+    # print(ra)
+    return ra
 
+def dec_text_to_deg( dec_txt):
+    dec = 0
+    dec_m1 = re.match( r'^([^\d])+(\d+)°\s+([\d\.]+)[′]', dec_txt )
+    if dec_m1:
+        dec += float( dec_m1.group(2))
+        dec += float( dec_m1.group(3)) / 60
+        if dec_m1.group(1) in ['-','−']:
+            dec = -dec
+    return dec
+
+def pandas_calc_xyz( df):
+	# This assumes df has columns ra, dec and dist in deg, deg and ly respectively
+    df['x'] = np.cos( df['ra'] * DEG2RAD) * np.cos( df['dec'] * DEG2RAD) * df['dist']
+    # print("[+] Calculating y's ...")
+    df['y'] = np.sin( df['ra'] * DEG2RAD) * np.cos( df['dec'] * DEG2RAD) * df['dist']
+    # print("[+] Calculating z's ...")
+    df['z'] = np.sin( df['dec'] * DEG2RAD) * df['dist']
+    return df
+ 
 
 
 suitable_parameters_from_stats = [

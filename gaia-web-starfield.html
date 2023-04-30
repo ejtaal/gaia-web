@@ -151,7 +151,8 @@ Please be patient as star data is loaded in the background.
                 /*
                 // Attempt 2: The one to beat. Distant cloudy patches visible while
                 // nearby stars are nice and bright
-                // 
+                // still dims out stars too quick i think where they
+                // become brighter again once further in the distance?!
 				
                 gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.5);
                 // if ( (gl_PointSize > 1.0) && (gl_PointSize < 3.0)) gl_PointSize = 3.0;
@@ -206,8 +207,9 @@ Please be patient as star data is loaded in the background.
 		<!-- The main index of all sky patch elements, which basically based on this file:
             http://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/_MD5SUM.txt
          -->
-        <script sync type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
-        <script type="module">
+         <script sync type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
+         <script sync type="text/javascript" src="data/wp-open-clusters.js"></script>
+         <script type="module">
 // Uhm yeah the HTML ain't gonna dictate our indentation. Who does it think it is!?!?
 import * as THREE from 'three';
 // THREE.Object3D.DefaultUp.set(0, 0, 1);
@@ -343,7 +345,7 @@ let tour_targets = [
     [ -213, 438, -385, 'NGC 2451 A'],
     [ -406, 838, -731, 'NGC 2451 B'],
     [ -200, 68, -442, 'IC 2602, Southern Pleiades'],
-    [ -784, 190, 1336, '?'],
+    [ -784, 190, -1336, '?'], // <- not in wikipedia?
     [ -108, -1263, -800, 'Messier 6, Butterfly Cluster'],
 //    [ , , , ''],
     [ 489, 730,  553, 'IC 348'], // <- is this really something?
@@ -372,6 +374,8 @@ let tour_targets = [
     [ ], 
     */
     ];
+
+tour_targets = wp_open_clusters
 
 let label_font;
 let labels_loaded = false;
@@ -1468,7 +1472,7 @@ function init() {
 
     const gui = new GUI( { title: 'Dataset' });
     
-    gui.add( { x: Object.keys(gaia_web_datasets)[0] }, 'x', gui_drop_down ).name( 'Dataset' ).onChange( function ( value ) {
+    gui.add( { x: data_set }, 'x', gui_drop_down ).name( 'Dataset' ).onChange( function ( value ) {
         if ( value != prev_data_set) {
             data_set = value
             reload_all_stars()
@@ -1918,11 +1922,12 @@ function tour_update( camera) {
 
     var easing;
     var easing_time = 5000;
+    var orbit_step_size = 0.1;
     if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
         tour_started = true;
         tour_busy = true;
         var t = icrs_to_threejs( tour_targets[ tour_target_index]);
-        tour_target_name = t[3]
+        tour_target_name = tour_targets[ tour_target_index][3]
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
 
@@ -1938,13 +1943,14 @@ function tour_update( camera) {
             slice triangles. Therefore, flying around stars should now start to 
             make you feel hungry ;).
             */
-            var orbit_step_size = 0.2;
+            
             var xdiff, ydiff, zdiff;
             var cur_radius = tour_orbit_radius;
-            for (var i = orbit_step_size; i < Math.PI * 4; i += 0.2) {
+            var up_or_down = (Math.random() < 0.5 ? 1 : -1)
+            for (var i = orbit_step_size; i < Math.PI * 4; i += orbit_step_size) {
                 cur_radius = tour_orbit_radius + Math.sin(i * 0.2) * 0.6 * tour_orbit_radius;
                 xdiff = t[0] - Math.cos(i) * cur_radius;
-                ydiff = t[1] + Math.sin(i * 0.4) * 0.8 * cur_radius;
+                ydiff = t[1] + up_or_down * Math.sin(i * 0.4) * 0.8 * cur_radius;
                 zdiff = t[2] + Math.sin(i) * cur_radius;
                 tour_stops.push( [xdiff, ydiff, zdiff])
             }
@@ -1995,7 +2001,7 @@ function tour_update( camera) {
         } else {
             // Go faster and linear for the semi-circular orbital pizza slices calculated above
             easing = TWEEN.Easing.Linear.None;
-            easing_time = 500; // ms
+            easing_time = 500 * (orbit_step_size / 0.2); // ms
 
             // easing = TWEEN.Easing.Sinusoidal.InOut; // Was used for cube lookaround
 
