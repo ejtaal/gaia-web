@@ -173,10 +173,167 @@ def gen_data_set_index():
     check_before_write( GAIA_WEB_DATA_SET_INDEX, 'var gaia_web_datasets = ' + str(all_data_sets))
     
 
+def get_wp_open_cluster_set():
+
+    wiki_df = pd.read_csv( 'wp-open-clusters.table.tsv', sep='|', index_col=False, names=['dist_pc','ra_text','dec_text','name'] )
+    print( wiki_df)
+    # df['result'] = df.apply(lambda row: multiply(row['column_1'], row['column_2']), axis=1)
+    wiki_df['ra'] = wiki_df.apply( lambda row: ra_text_to_deg( row['ra_text']), axis=1)
+    wiki_df['dec'] = wiki_df.apply( lambda row: dec_text_to_deg( row['dec_text']), axis=1)
+    wiki_df['dist'] = wiki_df['dist_pc'] * lightyear_p_parsec
+    wiki_df = pandas_calc_xyz( wiki_df)
+
+    print( wiki_df)
+    # exit(3)
+
+
+
+    # df = pd.read_csv( 'wp-open-clusters.csv', header=1, quotechar='"', skipinitialspace = True, sep=',' )
+    # df = pd.read_csv( 'wp-open-clusters.csv', quotechar='"', skipinitialspace = True, sep=',', index_col=False )
+    df = wiki_df
+    print( df)
+    for a in ['lower', 'upper']:
+        for b in ['x', 'y', 'z']:
+            df[ f'{a}_{b}'] = 0
+
+    interesting_radius = 150 #ly
+    for col in ['x', 'y', 'z']:
+        df.loc[ df[ col] < 0, f'lower_{col}'] = df[col] - interesting_radius
+        df.loc[ df[ col] < 0, f'upper_{col}'] = df[col] * 0.9 + interesting_radius
+        df.loc[ df[ col] > 0, f'lower_{col}'] = df[col] * 0.9 - interesting_radius 
+        df.loc[ df[ col] > 0, f'upper_{col}'] = df[col] + interesting_radius 
+    
+    print( df)
+
+    # Implement Dijkstra's algorithm for finding the shortest path:
+
+    # Generate distance matrix
+    distances = []
+    # points = 
+    # for p in range(0, len(df)):
+    how_many_points = len( df)
+    how_many_points = 40
+    
+    for p in range(0, how_many_points):
+        new_row = []
+        p_xyz = df.loc[ p, ['x','y','z']].values
+        # print( p_xyz)
+        # print( p_xyz[0])
+        # exit(9)
+        for q in range(0, how_many_points):
+            if p == q:
+                new_row.append(0)
+            else:
+                q_xyz = df.loc[ q, ['x','y','z']].values
+                d = np.sqrt( (p_xyz[0]-q_xyz[0])**2 + (p_xyz[1]-q_xyz[1])**2 + (p_xyz[2]-q_xyz[2])**2 )
+                new_row.append(d)
+        # print( new_row)
+        distances.append( new_row)
+    # print( distances)
+
+    # exact.solve_tsp_dynamic_programming
+    # If you with for an open TSP version (it is not required to go back to the origin), just set all elements of the first column of the distance matrix to zero:
+
+    # distance_matrix[:, 0] = 0
+    np_dist = np.array(distances)
+    np_dist[:, 0] = 0
+    print( np_dist)
+
+    # # Even with only 40 it eats RAM and CPU!
+    from python_tsp.exact import solve_tsp_dynamic_programming
+    from python_tsp.exact import solve_tsp_brute_force
+    # permutation, distance = solve_tsp_dynamic_programming( np_dist)
+    from python_tsp.heuristics import solve_tsp_simulated_annealing
+    from python_tsp.heuristics import solve_tsp_local_search
+    # permutation, distance = solve_tsp_local_search( np_dist)
+    # permutation, distance = solve_tsp_brute_force( np_dist)
+    
+    # print( permutation, distance)
+    # exit(9)
+
+
+
+
+
+    # import dijkstra3d
+    # # import numpy as np
+
+    # field = np.ones((512, 512, 512), dtype=np.int32)
+    # # field = df[ ['x','y','z'] ].to_records()[:40]
+    # source = (0,0,0)
+    # target = field[-1]
+    # print( field)
+
+    # # path is an [N,3] numpy array i.e. a list of x,y,z coordinates
+    # # terminates early, default is 26 connected
+    # path = dijkstra3d.dijkstra(field, source, target, connectivity=26) 
+
+    # print( path)
+
+    js_prefix = 'var wp_open_clusters = '
+    df_write_js_array( "wp-open-clusters.js", js_prefix, df, ['x','y','z','name'])
+
+    # exit(1)
+    # uplow_values = df[ ['lower_x', 'upper_x', 'lower_y', 'upper_y', 'lower_z', 'upper_z']].itertuples(index=False, name=None)
+    uplow_values = list( df[ ['lower_x', 'upper_x', 'lower_y', 'upper_y', 'lower_z', 'upper_z']].to_records(index=False))
+    print( uplow_values)
+
+    sql_where = '''WHERE false
+        OR (dist > 6000)
+        OR (abs_mag < -5)
+        '''
+    for r in uplow_values:
+        sql_where += f"OR (x > {r[0]:.0f} AND x < {r[1]:.0f} and y > {r[2]:.0f} and y < {r[3]:.0f} and z > {r[4]:.0f} and z < {r[5]:.0f})\n"
+
+    print( sql_where)
+
+    sql_count = f"""SELECT count(1)
+        FROM {GRAND_DB_TABLENAME}
+        {sql_where}"""
+    
+    dataset_name = f"wp-open-clusters-{interesting_radius}ly"
+    hm( f"Counting stars in set {dataset_name} ...")
+    dataset_num = get_pg_count_star( GRAND_DB_TABLENAME, sql_where)
+
+    hm( f"Dataset {dataset_name} has {dataset_num:,} stars.")
+
+    hm( f"  ... Gaia-web dataset {dataset_name}, extracting from DB ...")
+
+    SQL_QUERY=f"""SELECT 
+    {SELECT_ROUNDED_PG_CLAUSE} 
+    FROM {GRAND_DB_TABLENAME}
+    {sql_where}"""
+
+    # print( SQL_QUERY)
+    df = pd.read_sql_query( SQL_QUERY, con=engine)
+    print(df)
+    # exit(5)
+    # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
+    df.sort_values( 'dist', inplace=True, ignore_index=True)
+    # print( 'avg: ', statistics. ( values))
+    print(df)
+
+    if not os.path.exists( f'{SET_JS_BASEPATH}{dataset_name}'):
+        os.mkdir( f'{SET_JS_BASEPATH}{dataset_name}')
+
+    hm( f"  ... Gaia-web dataset {dataset_name}, writing to JS files ...")
+    js_prefix = 'var data = '
+    df_write_gaia_set( dataset_name, js_prefix, df, ['x','y','z','color','abs_mag'])
+
+
+    # print()
+    # print()
+    # print()
+
+    exit(2)
+
+
 def main():
     
 
-    gen_data_set_index()
+    # gen_data_set_index()
+
+    get_wp_open_cluster_set()
 
 
     hm('Writing regular sets ...')
