@@ -175,7 +175,7 @@ def gen_data_set_index():
 
 def get_wp_open_cluster_set():
 
-    wiki_df = pd.read_csv( 'wp-open-clusters.table.tsv', sep='|', index_col=False, names=['dist_pc','ra_text','dec_text','name'] )
+    wiki_df = pd.read_csv( 'wp-open-clusters.table.tsv', sep='|', index_col=False, names=['dist_pc','ra_text','dec_text','name','stretch'] )
     print( wiki_df)
     # df['result'] = df.apply(lambda row: multiply(row['column_1'], row['column_2']), axis=1)
     wiki_df['ra'] = wiki_df.apply( lambda row: ra_text_to_deg( row['ra_text']), axis=1)
@@ -196,12 +196,12 @@ def get_wp_open_cluster_set():
         for b in ['x', 'y', 'z']:
             df[ f'{a}_{b}'] = 0
 
-    interesting_radius = 150 #ly
+    min_interesting_radius = 150 #ly
     for col in ['x', 'y', 'z']:
-        df.loc[ df[ col] < 0, f'lower_{col}'] = df[col] - interesting_radius
-        df.loc[ df[ col] < 0, f'upper_{col}'] = df[col] * 0.9 + interesting_radius
-        df.loc[ df[ col] > 0, f'lower_{col}'] = df[col] * 0.9 - interesting_radius 
-        df.loc[ df[ col] > 0, f'upper_{col}'] = df[col] + interesting_radius 
+        df.loc[ df[ col] < 0, f'lower_{col}'] = df[col] * 1.1 - min_interesting_radius
+        df.loc[ df[ col] < 0, f'upper_{col}'] = df[col] * 0.9 + min_interesting_radius
+        df.loc[ df[ col] > 0, f'lower_{col}'] = df[col] * 0.9 - min_interesting_radius 
+        df.loc[ df[ col] > 0, f'upper_{col}'] = df[col] * 1.1 + min_interesting_radius 
     
     print( df)
 
@@ -272,6 +272,7 @@ def get_wp_open_cluster_set():
 
     js_prefix = 'var wp_open_clusters = '
     df_write_js_array( "wp-open-clusters.js", js_prefix, df, ['x','y','z','name'])
+    print('')
 
     # exit(1)
     # uplow_values = df[ ['lower_x', 'upper_x', 'lower_y', 'upper_y', 'lower_z', 'upper_z']].itertuples(index=False, name=None)
@@ -279,9 +280,10 @@ def get_wp_open_cluster_set():
     print( uplow_values)
 
     sql_where = '''WHERE false
-        OR (dist > 6000)
-        OR (abs_mag < -5)
         '''
+        # OR (dist > 8000)
+        # OR (abs_mag < -5)
+        # '''
     for r in uplow_values:
         sql_where += f"OR (x > {r[0]:.0f} AND x < {r[1]:.0f} and y > {r[2]:.0f} and y < {r[3]:.0f} and z > {r[4]:.0f} and z < {r[5]:.0f})\n"
 
@@ -291,7 +293,7 @@ def get_wp_open_cluster_set():
         FROM {GRAND_DB_TABLENAME}
         {sql_where}"""
     
-    dataset_name = f"wp-open-clusters-{interesting_radius}ly"
+    dataset_name = f"wp-open-clusters-{min_interesting_radius}ly"
     hm( f"Counting stars in set {dataset_name} ...")
     dataset_num = get_pg_count_star( GRAND_DB_TABLENAME, sql_where)
 
@@ -319,6 +321,7 @@ def get_wp_open_cluster_set():
     hm( f"  ... Gaia-web dataset {dataset_name}, writing to JS files ...")
     js_prefix = 'var data = '
     df_write_gaia_set( dataset_name, js_prefix, df, ['x','y','z','color','abs_mag'])
+    print('')
 
 
     # print()
