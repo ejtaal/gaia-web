@@ -471,7 +471,6 @@ def df_write_js_array( js_file, js_array_prefix, df, fields):
     
     # js_file = f'{SET_JS_BASEPATH}{set_name}/{element_idx}.js'
     check_before_write( js_file, js_array_prefix + js_array, feedback='char')
-    print('')
 
 
 def df_write_gaia_set( set_name, js_array_prefix, df, fields):
@@ -499,7 +498,6 @@ def df_write_gaia_set( set_name, js_array_prefix, df, fields):
         
         js_file = f'{SET_JS_BASEPATH}{set_name}/{element_idx}.js'
         check_before_write( js_file, js_array_prefix + js_array, feedback='char')
-        print('')
 
 def get_pg_count_star( table_name, where_clause=''):
     rows = prep_dbq_pydict( f"select count(*) from {table_name} {where_clause}")
@@ -512,22 +510,47 @@ def get_pg_count_star( table_name, where_clause=''):
 
 def ra_text_to_deg( ra_txt):
     ra = 0
-    ra_m1 = re.match( r'(\d+)\^h\s+([\d\.]+)\^m', ra_txt )
+
+    # 10^h 05^m 31.90^s
+
+    ra_m1 = re.match( r'(\d+)\^h\s+([\d\.]+)\^m\s+([\d\.]+)\^s', ra_txt )
+    ra_m2 = re.match( r'(\d+)\^h\s+([\d\.]+)\^m', ra_txt )
     if ra_m1:
+        # print(ra_txt)
         # print( ra_m1.group(1))
         # print( ra_m1.group(2))
+        # print( ra_m1.group(3))
+        # exit(9)
         ra += float( ra_m1.group(1)) * 15
         ra += float( ra_m1.group(2)) * 15/60
+        ra += float( ra_m1.group(3)) * 15/60/60
+    elif ra_m2:
+        # print( ra_m1.group(1))
+        # print( ra_m1.group(2))
+        ra += float( ra_m2.group(1)) * 15
+        ra += float( ra_m2.group(2)) * 15/60
     # print(ra)
     return ra
 
 def dec_text_to_deg( dec_txt):
     dec = 0
-    dec_m1 = re.match( r'^([^\d])+(\d+)°\s+([\d\.]+)[′]', dec_txt )
+
+    #   +00° 04′ 18.0″
+
+    dec_m1 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']\s*([\d\.]+)(\'\'|″)', dec_txt )
+    dec_m2 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′]', dec_txt )
     if dec_m1:
+        # print( dec_txt, dec_m1.group(2), dec_m1.group(3), dec_m1.group(4))
+        # exit(9)
         dec += float( dec_m1.group(2))
         dec += float( dec_m1.group(3)) / 60
+        dec += float( dec_m1.group(4)) / 60 / 60
         if dec_m1.group(1) in ['-','−']:
+            dec = -dec
+    elif dec_m2:
+        dec += float( dec_m2.group(2))
+        dec += float( dec_m2.group(3)) / 60
+        if dec_m2.group(1) in ['-','−']:
             dec = -dec
     return dec
 

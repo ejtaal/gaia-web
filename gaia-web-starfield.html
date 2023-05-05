@@ -173,14 +173,28 @@ Please be patient as star data is loaded in the background.
                 if ( gl_PointSize < 1.0) gl_PointSize = 1.0;
                 */
 
-				gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.5);
+				// gl_PointSize = size * pow(( 200.0 / -mvPosition.z), 1.5);
+				gl_PointSize = size * 500. / -mvPosition.z;
                 // if ( (gl_PointSize > 1.0) && (gl_PointSize < 3.0)) gl_PointSize = 3.0;
                 
+                if ( gl_PointSize < (size * 3.)) {
+                    //vColor = vColor * (0.5 + gl_PointSize / 14.0);
+                    // dim but not too much
+                    if ( gl_PointSize / 10. < 0.05) vColor = vColor * 0.05;
+                    else vColor = vColor * gl_PointSize / 10.;
+
+                    //gl_PointSize = size * 3.;
+                    gl_PointSize = size * 3. * (1. - -mvPosition.z/20000.);
+                }
+                
+                
+                /*
                 if ( gl_PointSize < 6.0) {
                     //vColor = vColor * (0.5 + gl_PointSize / 14.0);
                     //vColor = vColor * 0.9;
                     gl_PointSize = 3.0 + gl_PointSize / 2.0;
                 }
+                */
 
 				gl_Position = projectionMatrix * mvPosition;
 
@@ -199,7 +213,7 @@ Please be patient as star data is loaded in the background.
 
 				gl_FragColor = vec4( color * vColor, 1.0 );
 				gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
-                // if ( gl_FragColor.a < 0.5 ) discard;
+                if ( gl_FragColor.a < 0.4 ) discard;
 
 			}
 
@@ -336,27 +350,31 @@ let tour_target_arrived = false;
 let tour_time_at_target = 0;
 let tour_prev_update = 0;
 let tour_orbit_radius = 25; //ly
-let tour_targets = [
+let old_tour_targets = [
     /*
-    */
     [  62, 130, 50, 'Hyades'],
     [ 222, 336, 178, 'Messier 45, Pleiades'],
     [ -366, 434, 203, 'Messier 44, Beehive Cluster'],
     [ -213, 438, -385, 'NGC 2451 A'],
-    [ -406, 838, -731, 'NGC 2451 B'],
     [ -200, 68, -442, 'IC 2602, Southern Pleiades'],
-    [ -784, 190, -1336, '?'], // <- not in wikipedia?
-    [ -108, -1263, -800, 'Messier 6, Butterfly Cluster'],
-//    [ , , , ''],
-    [ 489, 730,  553, 'IC 348'], // <- is this really something?
-    [ 515, 340, 1055, '?'],
-    [ 907, 779, 1102, 'Messier 34'],
-    [ 125, 1219, -130, 'Trapezium Cluster?'],
-    [ 135, 1260, -115, 'Trapezium Cluster 2?'],
     [ -18.6,-746.4,-517.6, 'Messier 7'],
+    [ 125, 1219, -130, 'Trapezium Cluster?'],
+    [ 135, 1260, -115, 'Trapezium Cluster 2?'],    
+    [ 489, 730,  553, 'IC 348'], // <- is this really something?
+    [ -784, 194, -1333, 'NGC 3532, Wishing Well Cluster '],
+    [ -108, -1263, -800, 'Messier 6, Butterfly Cluster'],
+    [ 907, 779, 1102, 'Messier 34'],
+
+    */
+    [ -406, 838, -731, 'NGC 2451 B'],
+    //    [ , , , ''],
+    [ 515, 340, 1055, '?'],
+
     
     [ 144.4, 1113.5, 53.8, '?'],
     [ -266.2, 1239.2,1100.6, '?' ],
+    [ 260, -1525, 148, '?' ],
+    [ -628, -1429, -1341, '?' ],
     [ -2176.2, -4843.8, -2653.4, 'Messier 4' ],
     [ 3618.0, 2559.1, 6839.6, 'NGC 884 / NGC 869' ],
     [ 141, 4179, 2670, 'Messier 37'],
@@ -364,7 +382,6 @@ let tour_targets = [
     [ -302, -1940, -2330, 'IC 4651'],
     [ -1710, 3209, -2895, 'Behind NGC 2451 A/B?'],
     [ -1875, 2023, 576, 'Messier 67'],
-    [ -784, 194, -1333, 'NGC 3532, Wishing Well Cluster '],
     [ 407, 2954, 2144, 'Messier 38'],
     /*
     [ , , , ''],
@@ -375,7 +392,7 @@ let tour_targets = [
     */
     ];
 
-tour_targets = wp_open_clusters
+let tour_targets = wp_open_clusters
 
 let label_font;
 let labels_loaded = false;
@@ -396,6 +413,13 @@ let tour_busy = false;
 let tour_object_panning = true;
 let tour_name = 'open clusters';
 let tour_target_name = '';
+let stop_tween = false;
+
+let clock = new THREE.Clock();
+let delta = 0;
+// 60 fps
+let interval = 1 / 60;
+
 // let tour_target_name = '';
 
 let prevTime = performance.now();
@@ -407,7 +431,7 @@ const color = new THREE.Color();
 let initial_scene_reloaded = false;
 
 var spinner = ['-', '\\', '|', '/']
-let statusline = 'Date being loaded, please wait...'
+let statusline = 'Data being loaded, please wait...'
 let available_elements = []
 for (var i = 0; i < 100; i++) available_elements.push( i);
 
@@ -481,6 +505,7 @@ function icrs_to_threejs( c, reverse = false) {
 
 function add_nebulae_to_scene( scene, nebulae_data) {
     console.log('Entering nebulae....')
+    return 0
 
     var canvas = document.createElement("canvas");
 
@@ -1220,10 +1245,10 @@ function add_stars_to_scene( scene, star_coords) {
             vertexShader: document.getElementById( 'vertexshader' ).textContent,
             fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
 
-            // blending: THREE.AdditiveBlending,
-            blending: THREE.NormalBlending,
+            blending: THREE.AdditiveBlending,
+            // blending: THREE.NormalBlending,
             depthTest: false,
-            transparent: true,
+            transparent: false,
             vertexColors : true
             // flatShading: true
 
@@ -1451,7 +1476,7 @@ function init() {
             if (!labels_loaded) {
                 add_labels_to_scene( scene, [
                     [ 0, 0, 0, 'Sol (you are here)']
-                ].concat(tour_targets)
+                ].concat(tour_targets).concat(old_tour_targets)
                 )
             }
             fix_labels( );
@@ -1735,6 +1760,7 @@ function init() {
                 // stars_filter = 'da_hood'
                 // reload_all_stars();
                 // Go to the next tour stop
+                tour_active = true
                 tour_target_index += -1
                 console.log( tour_target_index)
                 if (tour_target_index < 0) tour_target_index = 0
@@ -1745,9 +1771,15 @@ function init() {
                 // stars_filter = 'da_hood'
                 // reload_all_stars();
                 // Go to the next tour stop
+                tour_active = true
+                
                 tour_target_index += 1
                 if (tour_target_index >= tour_targets.length) tour_target_index = 0
                 tour_stops = []
+                // TODO: Can't get stopping tween panning midway through to work properly...
+                // stop_tween = true
+                // tour_busy = false
+                // tour_object_panning = false
                 break;
         }
     };
@@ -1822,7 +1854,7 @@ function reload_all_stars() {
 
     // add_cubes_to_scene( scene, [])
 
-    // add_nebulae_to_scene( scene, [])
+    add_nebulae_to_scene( scene, [])
     
     rendered_sky_elements = []
     console.log('Full data reload should occur automatically now...')
@@ -1923,7 +1955,7 @@ function tour_update( camera) {
     var easing;
     var easing_time = 5000;
     var orbit_step_size = 0.1;
-    if (tour_active && ! tour_busy && (tour_targets.length > 0)) {
+    if ((tour_active && ! tour_busy && (tour_targets.length > 0)) || (stop_tween)) {
         tour_started = true;
         tour_busy = true;
         var t = icrs_to_threejs( tour_targets[ tour_target_index]);
@@ -1989,7 +2021,12 @@ function tour_update( camera) {
                 // console.log( 'ALERT4', camera.position.x, from.x)
                 // camera.position.x = this.x;
                 // camera.position.set( from.x, from.y, from.z);
-                camera.lookAt( angle_from.x, angle_from.y, angle_from.z);
+                if (tour_busy)
+                    camera.lookAt( angle_from.x, angle_from.y, angle_from.z);
+                if (stop_tween) {
+                    tween.stop()
+                    stop_tween = false
+                }
             })
             .onComplete( function () {
                 // camera.lookAt( t[0], t[1], t[2]);
@@ -2021,13 +2058,17 @@ function tour_update( camera) {
             .onUpdate( function () {
                 // console.log( 'ALERT4', camera.position.x, from.x)
                 // camera.position.x = this.x;
-                camera.position.set( from.x, from.y, from.z);
-                if (!tour_object_panning)
-                    camera.lookAt( t[0], t[1], t[2]);
+                if (tour_busy) {
+                    camera.position.set( from.x, from.y, from.z);
+                    if (!tour_object_panning)
+                        camera.lookAt( t[0], t[1], t[2]);
+                } else return 0;
             })
             .onComplete( function () {
-                camera.lookAt( t[0], t[1], t[2]);
-                tour_busy = false
+                if (tour_busy) {
+                    camera.lookAt( t[0], t[1], t[2]);
+                    tour_busy = false
+                }
             })
             .start();
 
@@ -2254,7 +2295,17 @@ function animate() {
 function render() {
 
     const camera = ( params.orthographicCamera ) ? orthographicCamera : perspectiveCamera;
-    
+
+    delta += clock.getDelta();
+
+//    if (delta  > interval) {
+//        // The draw or time dependent code are here
+//     //    render();
+//        renderer.render( scene, camera );
+
+//        delta = delta % interval;
+//    }
+
     renderer.render( scene, camera );
 
 }

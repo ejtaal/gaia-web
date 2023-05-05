@@ -60,6 +60,7 @@ Tech details of how data is extracted/stored/processed:
   - Add nebulae / dust clouds
   - Implement waypoint tour
     - Done, but need some way of interacting with it / sharing / adding items / tagging tour stops etc...
+    - Create open cluster waypoint tour dataset, where stretched out clusters have been contracted according to their highly unlike stretched out coordinates based on DR3 data alone, a contraction in the distance dimension only so to speak
   - Add hud view for camera viewing angle and speed vector
   - some sort of galactic or RA/dec minimap HUD view? Or grid on sky background option?
   - Done: Better tour navigation, i.e. next/prev/reset buttons at least
