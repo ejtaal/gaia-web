@@ -73,11 +73,11 @@
 Welcome to Gaia-web, where you can fly through the 
 stars like the USS Enterprise :)
 
-Where pressing space finally gets you into space :)
+Where pressing 'space' finally gets you into space :)
 
 Please be patient as star data is loaded in the background.
 
-   Click here to start ...
+   Click on the screen to start moving around ...
 </pre>
 				</p>
 				<p> Keyboard shortcuts: <br/>
@@ -364,7 +364,7 @@ let old_tour_targets = [
     [ -784, 194, -1333, 'NGC 3532, Wishing Well Cluster '],
     [ -108, -1263, -800, 'Messier 6, Butterfly Cluster'],
     [ 907, 779, 1102, 'Messier 34'],
-
+    [ -2176.2, -4843.8, -2653.4, 'Messier 4' ],
     */
     [ -406, 838, -731, 'NGC 2451 B'],
     //    [ , , , ''],
@@ -375,7 +375,7 @@ let old_tour_targets = [
     [ -266.2, 1239.2,1100.6, '?' ],
     [ 260, -1525, 148, '?' ],
     [ -628, -1429, -1341, '?' ],
-    [ -2176.2, -4843.8, -2653.4, 'Messier 4' ],
+
     [ 3618.0, 2559.1, 6839.6, 'NGC 884 / NGC 869' ],
     [ 141, 4179, 2670, 'Messier 37'],
     [ 3792, -40, 5780, 'NGC 7789, White Rose Cluster'],
@@ -1367,12 +1367,10 @@ function init() {
     var far_away = 10**6
     perspectiveCamera = new THREE.PerspectiveCamera( 60, aspect, 1, far_away );
     
-    perspectiveCamera.position.x = -200;
-    perspectiveCamera.position.y = 50
-    perspectiveCamera.position.z = 10;
-    // perspectiveCamera.up.set(0,0,1);
-
-    perspectiveCamera.lookAt( 200, 100, 100 );
+    // Position next to Hyades, looking towards Sol & Galaxy center
+    var pos = icrs_to_threejs( [100, 150, 60])
+    perspectiveCamera.position.set( pos[0], pos[1], pos[2] )
+    perspectiveCamera.lookAt( 0, -50, 0 );
 
     orthographicCamera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, 1, star_max_dist );
     // orthographicCamera.position.x =
@@ -1708,16 +1706,16 @@ function init() {
             case 'KeyL':
                 stars_filter = 'galactic';
                 camera.position.x = 1000;
-                camera.position.y = 20000;
+                camera.position.y = 10000;
                 camera.position.z = 1000;
                 camera.lookAt( 0, 0, 0);
                 reload_all_stars();
                 break;
 
             case 'KeyG':
-                camera.position.x = 3000;
+                camera.position.x = 0;
                 camera.position.y = 7000;
-                camera.position.z = 3000;
+                camera.position.z = 0;
                 camera.lookAt( 0, 0, 0);
                 break;
 
