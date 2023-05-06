@@ -1300,7 +1300,10 @@ function loadScript (scene, sky_element, async = false, type = "text/javascript"
     // New data set format:
     // url: data/set-star_density/8.js
 
-	var filename = './data/set-' + data_set + '/' + sky_element + '.js';
+	// for local files
+    // var filename = './data/set-' + data_set + '/' + sky_element + '.js';
+	// For split repositories and use on Github Pages:
+    var filename = '../gaia-web-data/set-' + data_set + '/' + sky_element + '.js';
 	var FILE_URL = filename;
 
 	if (loading_lock) {
