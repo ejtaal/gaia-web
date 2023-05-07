@@ -63,6 +63,7 @@ Tech details of how data is extracted/stored/processed:
 
 # TODO:
 
+- Some way of pausing the whole rendering stuff so the GPU fan can have a rest and/or data transfer is stopped.
 - Process complete data set and split in interesting sections, e.g.:
   - Galactic outline (if descernable)
   - Local neighbourhood only
