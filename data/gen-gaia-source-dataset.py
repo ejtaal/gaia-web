@@ -142,7 +142,7 @@ def write_bin_sets():
         print(df)
         df[ b['what_field'] ] = (df[ b['what_field']] - minv) / (maxv - minv)
         df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-        df.sort_values( 'dist', inplace=True, ignore_index=True)
+        df.sort_values( ['dist', 'x', 'y', 'z', 'color', 'abs_mag'], inplace=True, ignore_index=True)
         # print( 'avg: ', statistics. ( values))
         print(df)
 
@@ -311,7 +311,7 @@ def get_wp_open_cluster_set():
     print(df)
     # exit(5)
     # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-    df.sort_values( 'dist', inplace=True, ignore_index=True)
+    df.sort_values( ['dist', 'x', 'y', 'z', 'color', 'abs_mag'], inplace=True, ignore_index=True)
     # print( 'avg: ', statistics. ( values))
     print(df)
 
@@ -328,7 +328,7 @@ def get_wp_open_cluster_set():
     # print()
     # print()
 
-    exit(2)
+    # exit(2)
 
 
 def main():
@@ -336,7 +336,9 @@ def main():
 
     # gen_data_set_index()
 
-    get_wp_open_cluster_set()
+    # get_wp_open_cluster_set()
+
+    # write_bin_sets()
 
 
     hm('Writing regular sets ...')
@@ -412,7 +414,7 @@ def main():
         print(df)
         # exit(5)
         # df[ 'dist'] = np.sqrt( df['x']**2 + df['y']**2 + df['z']**2)
-        df.sort_values( 'dist', inplace=True, ignore_index=True)
+        df.sort_values( ['dist', 'x', 'y', 'z', 'color', 'abs_mag'], inplace=True, ignore_index=True)
         # print( 'avg: ', statistics. ( values))
         print(df)
 
@@ -431,7 +433,6 @@ def main():
         Instead, you can iterate over the cursor itself:
         """
                 
-    write_bin_sets()
     # do_stuff_with_row
 
         # dataset_file = f"{SOURCE_DB_PATH}/{dataset_name}.js"
