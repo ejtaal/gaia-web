@@ -173,6 +173,101 @@ def gen_data_set_index():
     check_before_write( GAIA_WEB_DATA_SET_INDEX, 'var gaia_web_datasets = ' + str(all_data_sets))
     
 
+def gen_hip_tycho_star_names_labels():
+    hipp_df = pd.read_csv( 'gaia-dr3-hipparcos-best-neighbour.csv', sep=',', index_col=False)
+    hipp_hood_df = pd.read_csv( 'gaia-dr3-hipparcos-neighbourhood.csv', sep=',', index_col=False)
+    tycho_df = pd.read_csv( 'gaia-dr3-tycho-best-neighbour.csv', sep=',', index_col=False)
+    IAU_WGSN_common_df = pd.read_csv( 'Starname_etymologies_IAU_WGSN_common.csv', sep=',', index_col=False)
+    IAU_WGSN_arabic_df = pd.read_csv( 'Starname_etymologies_IAU_WGSN_Arabic.csv', sep=',', index_col=False)
+
+
+
+    print( hipp_df, tycho_df, IAU_WGSN_common_df, IAU_WGSN_arabic_df)
+
+    hip_id_names = {}
+    
+    for tup in IAU_WGSN_arabic_df[ ['Proper Name', 'HIP']].values:
+        # print(tup)
+        if re.match( r'^\d+$', str(tup[1])):
+            hip_id_names[ tup[1]] = tup[0]
+
+    print( hip_id_names)
+
+    for tup in IAU_WGSN_common_df[ ['Proper Name', 'HIP']].values:
+        # print(tup)
+        if re.match( r'^\d+$', str(tup[1])):
+            if int(tup[1]) in hip_id_names:
+                hip_id_names[ int(tup[1])] += ' / ' + tup[0]
+            elif  tup[1] in hip_id_names:
+                hip_id_names[ tup[1]] += ' / ' + tup[0]
+            else:
+                hip_id_names[ tup[1]] = tup[0]
+
+    print( hip_id_names)
+    gaia_sid_name = {}
+
+    for hip_key in hip_id_names.keys():
+        print( hip_key, hip_id_names[ hip_key] )
+        gaia_sid = hipp_df[hipp_df['original_ext_source_id'] == int(hip_key)]['source_id'].values
+        if len(gaia_sid) > 0:
+            gaia_sid_name[ gaia_sid[0]] = hip_id_names[ hip_key]
+            print( hip_key, gaia_sid, hip_id_names[ hip_key] )
+        # else:
+        #     # gaia_sid = tycho_df[tycho_df['tycho2tdsc_merge_oid'] == int(hip_key)]['source_id'].values
+        #     # Try to look it up in tycho instead?
+        #     if len(gaia_sid) > 0:
+        #         gaia_sid_name[ gaia_sid[0]] = hip_id_names[ hip_key]
+        #         print( hip_key, gaia_sid, hip_id_names[ hip_key] )
+        #     else:
+        #         print('no gaia sid found :(')
+        # exit(9)
+
+    print(gaia_sid_name)
+    # exit(9)
+
+    where_clause = 'where source_id in ('
+    for k in gaia_sid_name.keys():
+        where_clause += str(k) + ','
+    where_clause = where_clause[:-1]
+    where_clause += ')'
+
+    sql_q = f'select source_id,{SELECT_ROUNDED_PG_CLAUSE} FROM "{GRAND_DB_TABLENAME}" {where_clause}'
+    print(sql_q)
+    df = pd.read_sql_query( sql_q, conn)
+    df['name'] = ''
+    print(df)
+    for k in gaia_sid_name.keys():
+        df.loc[ df['source_id'] == k, 'name'] = gaia_sid_name[k]
+        df.loc[ df['source_id'] == int(k), 'name'] = gaia_sid_name[int(k)]
+
+
+    # tycho_df[tycho_df['tycho2tdsc_merge_oid'] == hip_key]['source_id']
+
+    # gaia_coords = pd.read_sql
+    df.sort_values( ['dist', 'x', 'y', 'z', 'color', 'abs_mag'], inplace=True, ignore_index=True)
+    print(df)
+
+    js_prefix = 'var star_labels = '
+    df_write_js_array( "star-labels.js", js_prefix, df, ['x','y','z','name'])
+    exit(0)
+    
+def gen_nebulae_set():
+    # neb_df = pd.read_csv( '../nebulae/nenulae.tsv', sep='|', index_col=False, names=['dist_pc','ra_text','dec_text','name','stretch'] )
+    neb_df = pd.read_csv( '../nebulae/nebulae.tsv', sep='|', index_col=False)
+    print( neb_df)
+    neb_df['ra'] = neb_df.apply( lambda row: ra_text_to_deg( row['ra_text']), axis=1)
+    neb_df['dec'] = neb_df.apply( lambda row: dec_text_to_deg( row['dec_text']), axis=1)
+    neb_df['dist_pc'] = neb_df['dist'] / lightyear_p_parsec
+    neb_df['size_ly'] = np.sqrt(2) * neb_df['dist'] * np.tan( DEG2RAD * neb_df['fieldradius_arcmins'] / 60)
+    neb_df = pandas_calc_xyz( neb_df)    
+    print( neb_df)
+
+    df = neb_df[['x','y','z','size_ly','rotation_deg','dirname','name']]
+    js_prefix = 'var nebula_data = '
+    df_write_js_array( "nebula-data.js", js_prefix, df, ['x','y','z','name','size_ly','rotation_deg','dirname'])
+
+
+
 def get_wp_open_cluster_set():
 
     wiki_df = pd.read_csv( 'wp-open-clusters.table.tsv', sep='|', index_col=False, names=['dist_pc','ra_text','dec_text','name','stretch'] )
@@ -333,6 +428,11 @@ def get_wp_open_cluster_set():
 
 def main():
     
+    # gen_hip_tycho_star_names_labels()
+
+    gen_nebulae_set()
+
+    exit(8)
 
     # gen_data_set_index()
 
