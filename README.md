@@ -1,6 +1,6 @@
 # About
 
-This repo contains Scripts to process GAIA DR3+ data and convert it into a Three.js visualization for the web, allowing one to either fly through the star using WASD and mouse movement, or visit interesting spots in the galactic neighbourhood via the built-in tour facility.
+This repo contains scripts to process GAIA DR3+ data and convert it into a Three.js visualization for the web, allowing one to either fly through the stars using WASD and mouse movement, or visit interesting spots in the galactic neighbourhood via the built-in tour facility.
 
 # Live demo
 
@@ -14,6 +14,19 @@ The demo is courtesy of Github Pages and currently hosts these datasets through 
 - 'px20_10000ly_15mag' (~1.4GB)
 
 Please note that with standard webserver gzip compression, actual data transferred is around 30-40% of the numbers above.
+
+# Performance tips
+
+A good GPU is recommended (RTX2060 / RTX 3060 Mobile or better). If rendering still only gives low FPS then ensure the browser is using the right GPU in your machine. Check task manager-> Performance to see which GPU is being used for rendering. If your built-in is being used instead of your AMD/NVidia one, enable the latter by:
+- Go to Display settings
+- "Graphics settings"
+- Select Browse 
+- Select your browser executable (e.g. C:\Progfram files\Mozilla Firefox\firefox.exe)
+- Select options for the browser executable you just selected
+- Select 'High performance' and Save
+- Restart your browser
+
+Enjoy a high performance 3D star field 😎
 
 # Running it locally
 
@@ -38,7 +51,7 @@ A video can be found here:
 
 [![IMAGE_ALT](https://img.youtube.com/vi/yiTVA2BYB5I/0.jpg)](https://www.youtube.com/watch?v=yiTVA2BYB5I)
 
-The video shows off the "tour" feature, where the camera visits some open clusters and flys around them. (Yes, annotations and smoother orbits are already on TODO list ;) )
+The video shows off the "tour" feature, where the camera visits some open clusters and flys around them. (Yes, annotations and smoother orbits are already on TODO list 😉 )
 
 The orange stripes are there because at the time of creating the video I only had about 10% of all Gaia data files, chosen at random. Because the Milky Way is overrepresented according to the HEALPix division of the data (See https://www.cosmos.esa.int/web/gaia-users/archive/extract-data and this lovely picture: https://www.cosmos.esa.int/documents/3414525/8760265/GaiaDR3_partitions_galactic.png/a2852722-bd04-d86c-ffc4-ed877b22fc93?t=1667563775853), this will result in "streams" of stars appearing to eminate from the origin/Sol as long as a full data
 download hasn't been done yet.
@@ -69,11 +82,13 @@ Tech details of how data is extracted/stored/processed:
   - Local neighbourhood only
   - Search data for clusters by calculating star densities
 - Datasets:
-  - Add nebulae / dust clouds based on suitable astro photographs (could use help from a GSLS expert on how to efficiently create volumetric clouds as this seems to be a highly tricky thing to make)
+  - ~~Add nebulae / dust clouds based on suitable astro photographs~~
+    - add many more
+    - could use help from a GLSL expert on how to efficiently create volumetric clouds as this seems to be a highly tricky thing to make
   - focus on high density anomolies (globular/open clusters/nebulae), so this will rely on prior appropriate binning and using that to generate only star data for high density regions found.
-  - Import 
+  - Import more nebulae
 - Annotate interesting features, e.g.:
-  - Open clusters
+  - ~~done: Open clusters~~
   - Globular clusters (if present in data?)
   - Famous constellations / star systems (binaries etc)
   - known exoplanet hosts
@@ -81,18 +96,27 @@ Tech details of how data is extracted/stored/processed:
   - Make stars glow (i.e. use GSLS trickery to create light sources instead of a sprite)
   - Implement waypoint tour
     - Done, but need some way of interacting with it / sharing / adding items / tagging tour stops etc...
-    - Create open cluster waypoint tour dataset, where stretched out clusters have been contracted according to their highly unlike stretched out coordinates based on DR3 data alone, a contraction in the distance dimension only so to speak
-  - Add hud view for camera viewing angle (done) and speed vector (speed still missing)
-  - some sort of galactic or RA/dec minimap HUD view? Or grid on sky background option?
-  - Done: Better tour navigation, i.e. next/prev/reset buttons at least
+    - ~~Create open cluster waypoint tour dataset~~
+      - stretched out clusters have been contracted according to their highly unlike stretched out coordinates based on DR3 data alone, a contraction in the distance dimension only so to speak
+  - ~~Add hud view for camera viewing angle~~
+    - add speed vector
+    - some sort of galactic or RA/dec minimap HUD view? Or grid on sky background option?
+  - ~~Better tour navigation, i.e. next/prev/reset buttons at least~~
 - Allow sharing of location / camera angle via url, e.g. http://site/gwsf#12,45,56@0.5,0.5,0.5 (would need to include selected dataset)
 - Separate viewer and dataset for Gaia galactic candidates data set, using red-shift to calculate 3D position. Other datasets may have additional/more/better data too (SLOAN?).
+- Incorporate some 3D version of:
+  - https://en.wikipedia.org/wiki/Milky_Way#Astrography
+  - https://memory-alpha.fandom.com/wiki/Alpha_Quadrant?file=STO_galaxy_map.png 😉
 
 # Credits
 
-Inspiration was gained from the awesome pioneering work done by @flimshaw who used the 2016 Gaia DR1 data to construct a 3D visualization of it:
-- Explanation: https://medium.com/@flimshaw/torrenting-the-galaxy-extracting-2-million-3d-stars-from-180gb-of-csvs-457ff70c0f93#.7g0zpkwnk
-- The actual 3D demo: https://charliehoey.com/threejs-demos/gaia_dr1.html
+- Inspiration was gained from the awesome pioneering work done by @flimshaw who used the 2016 Gaia DR1 data to construct a 3D visualization of it:
+  - Explanation: https://medium.com/@flimshaw/torrenting-the-galaxy-extracting-2-million-3d-stars-from-180gb-of-csvs-457ff70c0f93#.7g0zpkwnk
+  - The actual 3D demo: https://charliehoey.com/threejs-demos/gaia_dr1.html
+- Astrobin and it's users, namely for their beautiful nebulae etc images:
+  - TODO
+  - ...
+- Astrometry.net for providing Astrobin with the data I desperately need for the data files (ra, dec, rotation, fov)
 
 # Other visualizations
 

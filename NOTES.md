@@ -52,4 +52,37 @@ rGal = [XGal, YGal, ZGal] = [coslcosb, sinlcosb, sinb].
 - b : Galactic latitude (double, Angle[deg])
 - (which column determines length of vector though?) -->
 
+select round( abs_mag) abs_mag_rounded, round( avg( dist)) as avg_distance, count(*) from grand_gaia_source 
+group by abs_mag_rounded
 
+"abs_mag_rounded"	"avg_distance"	"count"
+-14	15129	2
+-13	13043	73
+-12	12232	261
+-11	12790	1010
+-10	19016	10185
+-9	19991	123212
+-8	19009	483711
+-7	16854	1113339
+-6	14648	2728476
+-5	11849	5847514
+-4	10281	5912346
+-3	8278	12527877
+-2	6949	29424681
+-1	5782	37002128
+-0	4614	31867721
+ 1	3569	21909892
+ 2	2668	14893745
+ 3	1973	11295516
+ 4	1495	8288227
+ 5	1148	4557908
+ 6	868	2177088
+ 7	652	1077939
+ 8	492	587870
+ 9	372	271076
+10	280	85792
+11	203	18563
+12	140	2454
+13	87	218
+14	51	20
+15	32	4

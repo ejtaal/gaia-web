@@ -433,7 +433,7 @@ def df_write_js_array( js_file, js_array_prefix, df, fields):
         # print( df.iloc[start:stop+1])
         # Is that some old style string formatting??
     # print( df[ fields])
-    print( df[ fields].values)
+    # print( df[ fields].values)
     # js_array = str( df[ fields].values.tolist())
     # np.list2
     # js_array = np.array2string( np.asarray( df[ fields].values.tolist())
@@ -513,8 +513,8 @@ def ra_text_to_deg( ra_txt):
 
     # 10^h 05^m 31.90^s
 
-    ra_m1 = re.match( r'(\d+)\^h\s+([\d\.]+)\^m\s+([\d\.]+)\^s', ra_txt )
-    ra_m2 = re.match( r'(\d+)\^h\s+([\d\.]+)\^m', ra_txt )
+    ra_m1 = re.match( r'(\d+)\^?h\s*([\d\.]+)\^?m\s*([\d\.s]+)\^?s?', ra_txt )
+    ra_m2 = re.match( r'(\d+)\^?h\s*([\d\.]+)\^?m', ra_txt )
     if ra_m1:
         # print(ra_txt)
         # print( ra_m1.group(1))
@@ -523,7 +523,12 @@ def ra_text_to_deg( ra_txt):
         # exit(9)
         ra += float( ra_m1.group(1)) * 15
         ra += float( ra_m1.group(2)) * 15/60
-        ra += float( ra_m1.group(3)) * 15/60/60
+        # To accomodate Astrobin, e.g.: 01h02m03s.4
+        secs = ra_m1.group(3)
+        if 's' in secs:
+            secs = secs.replace('s', '')
+        # print(secs)
+        ra += float( secs) * 15/60/60
     elif ra_m2:
         # print( ra_m1.group(1))
         # print( ra_m1.group(2))
@@ -537,14 +542,19 @@ def dec_text_to_deg( dec_txt):
 
     #   +00° 04′ 18.0″
 
-    dec_m1 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']\s*([\d\.]+)(\'\'|″)', dec_txt )
-    dec_m2 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′]', dec_txt )
+    dec_m1 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']\s*([\d\.″]+)[\'″]*', dec_txt )
+    dec_m2 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']', dec_txt )
     if dec_m1:
         # print( dec_txt, dec_m1.group(2), dec_m1.group(3), dec_m1.group(4))
         # exit(9)
         dec += float( dec_m1.group(2))
         dec += float( dec_m1.group(3)) / 60
-        dec += float( dec_m1.group(4)) / 60 / 60
+        secs = dec_m1.group(4)
+        # To accomodate Astrobin, e.g.: -22°58′43″.73
+        if '″' in secs:
+            secs = secs.replace('″', '')
+        print(secs)
+        dec += float( secs) / 60 / 60
         if dec_m1.group(1) in ['-','−']:
             dec = -dec
     elif dec_m2:
