@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>GAIA-Web 3D Starfield v0.3</title>
+		<title>GAIA-Web 3D Starfield v0.4</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="three.js/main.css">
@@ -41,7 +41,7 @@
 				width: 100%;
 				height: 100%;
 				color: white;
-				background-color: rgba(0,0,0,0.1);
+				background-color: rgba(0,0,0,0.05);
 			}
 
 			#instructions {
@@ -56,6 +56,7 @@
                 line-height: 100%;
 				text-align: left;
 				font-size: 12px;
+                padding: 5px;
 				cursor: pointer;
 				border: 3px solid white;
 			}			
@@ -71,13 +72,16 @@
 
 
 Welcome to Gaia-web, where you can fly through the 
-stars like the USS Enterprise :)
+stars like the USS Enterprise 🚀
 
-Where pressing 'space' finally gets you into space :)
+Where pressing 'space' finally gets you into space 😉
 
 Please be patient as star data is loaded in the background.
 
-   Click on the screen to start moving around ...
+Click on the starfield to capture WASD keys to star moving around,
+and ESC to uncapture and return the cursor.
+
+
 </pre>
 				</p>
 				<p> Keyboard shortcuts: <br/>
@@ -88,7 +92,12 @@ Please be patient as star data is loaded in the background.
 					Tour next object: N<br/>
 					Tour prev object: P<br/>
                     Back to Sol: B<br/>
+                    aXis on/off: X<br>
+                    Milky Way view: M (select a 10000+ ly dataset first)<br>
+                    Pause data loading & rendering: Z<br>
+                    sLow down starship: L<br>
                     Galactic overview: G<br/>
+                    Right Mouse click: Zoom in/out<br>
 				</p>
 			</div>
 		</div>
@@ -223,6 +232,10 @@ Please be patient as star data is loaded in the background.
          -->
          <script sync type="text/javascript" src="data/gaia-web-data-sets-index.js"></script>
          <script sync type="text/javascript" src="data/wp-open-clusters.js"></script>
+         <script sync type="text/javascript" src="data/star-labels.js"></script>
+         <script sync type="text/javascript" src="data/nebula-data.js"></script>
+
+         
          <script type="module">
 // Uhm yeah the HTML ain't gonna dictate our indentation. Who does it think it is!?!?
 import * as THREE from 'three';
@@ -339,6 +352,19 @@ let warp_enabled = false;
 let global_sizeAttenuation = true;
 let global_sizeAttenuation_multiplier = 1;
 let axes_added = false;
+let default_camera_fov = 60
+
+let DEG2RAD = Math.PI / 180
+
+let global_render_load_pause = false;
+
+let axesHelper = new THREE.AxesHelper( 100 );
+let we_want_axes = true;
+
+let slow_down_cowboy = false;
+
+let earth_hyades_milkyway_bg = icrs_to_threejs( [101, 160, 62])
+
 
 let stars_filter = 'da_hood';
 // let stars_filter = 'galactic';
@@ -349,7 +375,7 @@ let tour_speed = 0;
 let tour_target_arrived = false;
 let tour_time_at_target = 0;
 let tour_prev_update = 0;
-let tour_orbit_radius = 25; //ly
+let tour_orbit_radius_default = 25; //ly
 let old_tour_targets = [
     /*
     [  62, 130, 50, 'Hyades'],
@@ -504,118 +530,256 @@ function icrs_to_threejs( c, reverse = false) {
 }
 
 function add_nebulae_to_scene( scene, nebulae_data) {
-    console.log('Entering nebulae....')
-    return 0
+    // console.log('Entering nebulae....')
+    statusline = 'Loading nebulae into scene...'
+    // return 0
 
-    var canvas = document.createElement("canvas");
+    var nebula_targets = []
 
-    var pic = new Image(); 
-    pic.src = 'nebulae/out.png'; 
-    pic.onload = function() {
+    var method = 2
+    if (method == 2) {
+        // console.log('brick wall')
 
-        canvas.width = pic.width;
-        canvas.height = pic.height;
-        var ctx = canvas.getContext("2d");
+        // MeshPhongMaterial needs light, else it will be black
+        // scene.add(new THREE.AmbientLight(0xAAAAAA))
+        scene.add(new THREE.AmbientLight(0xFFFFFF))
 
-        ctx.drawImage(pic, 0, 0);
+        var ni = 0;
+        for ( ni = 0; ni < nebulae_data.length; ni++) {
+            var n = nebulae_data[ni]
+            var x = n[0]
+            var y = n[1]
+            var z = n[2]
+            var name = n[3]
+            var size = n[4]
+            var rotation = n[5]
+            var dirname = n[6]
+            nebula_targets.push( [x, y, z, name, size])
 
-        var c = canvas.getContext('2d');
-        var p = c.getImageData(107, 107, 1, 1).data;
-        var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
-        console.log( 'colors: ', p, hex)
+            // let neb_map = new THREE.TextureLoader().load(`nebulae/${dirname}/in.jpg`);
+            let neb_map = new THREE.TextureLoader().load(`nebulae/${dirname}/out.jpg`);
 
-        var p = c.getImageData( 80, 80, 1, 1).data;
-        var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
-        console.log( 'colors: ', p, hex)
 
-        // Transform image to cubes
-        var pixel
-        var c;
-        var x, y, z;
-        var actually_added = 0;
-        var stars_geometry = new THREE.BufferGeometry();
-        
-        // var amount = cube_data.length
-        // const positions = new Float32Array( );
-        // const colors = new Float32Array( );
-        // const sizes = new Float32Array( );
-        const positions = [];
-        const colors = [];
-        const sizes = [];
+            let neb_dmap = new THREE.TextureLoader().load(`nebulae/${dirname}/dmap.jpg`);
+            let neb_amap = new THREE.TextureLoader().load(`nebulae/${dirname}/amap.jpg`);
+            let neb_bmap = new THREE.TextureLoader().load(`nebulae/${dirname}/bmap.jpg`);
 
-        for (var y = 1; y < pic.height; y++) {
-            for (var z = 1; z < pic.width; z++) {
-                pixel = c.getImageData( z, y, 1, 1).data;
-                /*
-                Yeah cubes without shader language optimization is not the way forward
-                i.e. displaying a few hundred cubes slows it all down to a crawl.
-                It's not impossible, see here:
-                https://codepen.io/zadvorsky/pen/mwqQaJ
-                But will require much more study.
-                */
-                /*
-                var cube = new THREE.Mesh(
-                new THREE.BoxGeometry( 1, 1, 1),
-                new THREE.MeshBasicMaterial({
-                    // color: Math.random() * 0x0000FF, // + 0x000080,
-                    color: 0x0000FF,
-                    // color: 0x8888AA,
+            var displacement_opacity_array = [
+                // [ 25, -1, 0.1, neb_bmap ],
+                // [ 15, -2, 0.5, neb_bmap ],
+                // // [ 10, -2, 0.5, neb_bmap ],
+                // [ 5, -2, 0.2, neb_bmap ],
+                [ 0, 0, 1, neb_bmap],
+                [ -25 * size / 100, 1, 1, neb_map ],
+                [ 25 * size / 100, -1, 1, neb_map ],
+                // [ -25, 1, 0.2 ],
+                // [ -15, 2, 0.1 ],
+            ]
+
+            for (var di = 0; di < displacement_opacity_array.length; di++) {
+                var d = displacement_opacity_array[di]
+            // for (var di = 0; di < 100; di++) {
+            //     var d = [
+            //         100 - di, 0, di / 100, neb_map
+            //     ]
+                let neb_material = new THREE.MeshPhongMaterial({
+                    // color: 0xffff00, 
+                    side: THREE.DoubleSide,
+                    // bumpMap: bmap,
+                    // bumpScale: 1.3,
+                    displacementMap: neb_dmap,
+                    displacementScale: d[0],
+                    displacementBias: d[1],
+                    opacity: d[2],
+                    map: d[3],
                     transparent: true,
-                    // opacity: Math.random() * 0.1,
-                    opacity: 0.1,
-                })
-                );
+                    // shading: THREE.SmoothShading,
+                    alphaMap: neb_amap,
+                    depthTest: false,
+                    // alphaTest: 0.05,
+                    reflectivity: 0,
+                });
+                // console.log( neb_map.naturalWidth, neb_map.naturalHeight );
+
+                const neb_geometry = new THREE.PlaneGeometry( size, size, 1000, 1000 );
+                const neb_plane = new THREE.Mesh( neb_geometry, neb_material );
+                // planea.translate( 100, 30, 30)
+                // var pos = icrs_to_threejs( [ -100, 50, 50])
+                // neb_plane.rotation.z = rotation * DEG2RAD
                 
-                cube.position.x = 50
-                cube.position.y = 50 + pic.height - y
-                cube.position.z = 100 + z
-                // cube.material.opacity = 0.3
-                // cube.material.color = Math.random() * 0x000080 + 0x606080,
-                // cube.material.color = new THREE.Color()
-                cube.material.opacity = 0.3; // * (x+y+z)/30
-                // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
-                pixel = c.getImageData( z, y, 1, 1).data;
-                cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
-                // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
-                // console.log('cube: ', cube)
-                scene.add(cube);
-                */
-                x = 50
-                positions.push(x)
-                positions.push(pic.height - y)
-                positions.push(z)
-                colors.push( pixel[0] / 256)
-                colors.push( pixel[1] / 256)
-                colors.push( pixel[2] / 256)
-                sizes.push( 15)
 
-
-                // Add depth cubes/pixels
-                // var depth = parseInt( 0.25 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+                // var pos = icrs_to_threejs( [x, y, z])
+                // neb_plane.position.x = 0
+                // neb_plane.position.y = 0
+                // neb_plane.position.z = -10
                 
-                // Depth based on pixel value
-                // var depth = parseInt( 0.5 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
 
-                // Depth based on it being a spheroid
-                var depth = 0.5 * parseInt(
-                    Math.sqrt(
-                        Math.cos( 
-                        Math.PI * Math.abs( 0.5*pic.height - y) / pic.height
-                    )**2
-                    *
-                    Math.sin( 
-                        Math.PI * Math.abs( 0.5*pic.width - x) / pic.width
-                    )**2
-                    )
-                    * pic.width
-                )
+                var pos = icrs_to_threejs( [x, y, z])
+                neb_plane.position.x = pos[0]
+                neb_plane.position.y = pos[1]
+                neb_plane.position.z = pos[2]
 
-                console.log( 'depth', depth)
+                // neb_plane.rotation = rotation
+                neb_plane.lookAt( new THREE.Vector3( 0, 0, 0))
+                // neb_plane.rotation.z = (  Math.PI / 4)
+                // neb_plane.position.x = 100
+                // neb_plane.position.y = 0
+                // neb_plane.position.z = 0
+
+                // neb_plane.lookAt(150, 100, 50); 
+                var axis = new THREE.Vector3(0, 0, 1);
+                neb_plane.rotateOnAxis(axis, -rotation * DEG2RAD);
+
+                // neb_plane.lookAt( new THREE.Vector3( 0, 0, 0))
+                // neb_plane.rotateY(  Math.PI / 4)
+                // neb_plane.rotateZ(  Math.PI / 4)
+
+                // var axis = new THREE.Vector3( pos[0], pos[1], pos[2] );
+                // var deg = 43;
+                // var angle = deg * (Math.PI / 180);
+                // neb_geometry.applyAxisAngle( axis, angle ); 
+
+                // geometry.lookAt( new THREE.Vector3( -100, -30, -30))
+                scene.add( neb_plane );
+                }
+
+        }
+        // add_labels_to_scene( scene, nebula_targets)
+        tour_targets = nebula_targets.concat( tour_targets)
+    }
+
+    if (method == 0) {
+        // The old 
+
+        // let map = new THREE.TextureLoader().load("nebulae/i2qvMyMDQfwWCzBFn8wPF6.jpg");
+        let map = new THREE.TextureLoader().load("nebulae/i2qvMyMDQfwWCzBFn8wPF6.jpg");
+        let bmap = new THREE.TextureLoader().load("nebulae/i2qvMyMDQfwWCzBFn8wPF6.jpg");
+        let dmap = new THREE.TextureLoader().load("nebulae/out.jpg");
+        // let amap = new THREE.TextureLoader().load("nebulae/alpha.jpg");
+        let amap = new THREE.TextureLoader().load("nebulae/alpha.jpg");
+        let amaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffff00, 
+            side: THREE.DoubleSide,
+            bumpMap: bmap,
+            bumpScale: 1.3,
+            displacementMap: dmap,
+            displacementBias: 2,
+            displacementScale: -15,
+            transparent: true,
+            alphaMap: amap,
+            depthTest: false,
+            // alphaTest: 0.05,
+            reflectivity: 0,
+            opacity: 0.2,
+            map: map
+        });
+        let bmaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffff00, 
+            side: THREE.DoubleSide,
+            bumpMap: bmap,
+            bumpScale: 1.3,
+            displacementMap: dmap,
+            displacementBias: -2,
+            displacementScale: 15,
+            transparent: true,
+            alphaMap: amap,
+            depthTest: false,
+            // alphaTest: 0.05,
+            reflectivity: 0,
+            map: map
+        });
+
+        const geometry = new THREE.PlaneGeometry( 100, 100, 200, 200 );
+        // const geometry = new THREE.PlaneGeometry( 100, 100, 1000, 1000 );
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xffff00, 
+            side: THREE.DoubleSide
+        } );
 
 
-                var dimm_factor = 1;
-                var depth_x = 0;
-                for (var x = -depth; x < depth; x++) {
+
+        // geometry.translate( 100, 30, 30)
+        const planea = new THREE.Mesh( geometry, amaterial );
+        // planea.translate( 100, 30, 30)
+        planea.position.x = 100
+        planea.position.y = 50
+        planea.position.z = 50
+        planea.lookAt( new THREE.Vector3( 0, 0, 0))
+        // geometry.lookAt( new THREE.Vector3( -100, -30, -30))
+        scene.add( planea );
+
+        const planeb = new THREE.Mesh( geometry, bmaterial );
+        planeb.position.x = 100
+        planeb.position.y = 50
+        planeb.position.z = 50
+        planeb.lookAt( new THREE.Vector3( 0, 0, 0))
+        scene.add( planeb );
+
+        // Here we'll try using mesh with displacement maps.
+        // let map = new THREE.TextureLoader().load("nebulae/out.png");
+        // let map = new THREE.TextureLoader().load("nebulae/i2qvMyMDQfwWCzBFn8wPF6.jpg");
+        // let ageometry = new THREE.PlaneGeometry( 400, 450, 50, 50);
+        // // let ageometry = new THREE.PlaneGeometry( 4000, 4500, 500, 500);
+        // // geometry.position.x = 0
+        // // geometry.position.y = 0
+        // // geometry.position.z = 0
+        // let brickWall = new THREE.Mesh(ageometry,amaterial);
+        // scene.add(brickWall);
+        // var points = new THREE.Points( ageometry, amaterial );
+        // scene.add( points );
+
+    }
+
+
+    if (method == 1) {
+
+        // This method generates sprites for each image coordinate, and adds depth based on the brightness of the RGB components. It works but needs lots of tweaking still
+        var canvas = document.createElement("canvas");
+
+        var pic = new Image(); 
+        pic.src = 'nebulae/out.png'; 
+        pic.onload = function() {
+
+            canvas.width = pic.width;
+            canvas.height = pic.height;
+            var ctx = canvas.getContext("2d");
+
+            ctx.drawImage(pic, 0, 0);
+
+            var c = canvas.getContext('2d');
+            var p = c.getImageData(107, 107, 1, 1).data;
+            var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+            console.log( 'colors: ', p, hex)
+
+            var p = c.getImageData( 80, 80, 1, 1).data;
+            var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+            console.log( 'colors: ', p, hex)
+
+            // Transform image to cubes
+            var pixel
+            var c;
+            var x, y, z;
+            var actually_added = 0;
+            var stars_geometry = new THREE.BufferGeometry();
+            
+            // var amount = cube_data.length
+            // const positions = new Float32Array( );
+            // const colors = new Float32Array( );
+            // const sizes = new Float32Array( );
+            const positions = [];
+            const colors = [];
+            const sizes = [];
+
+            for (var y = 1; y < pic.height; y++) {
+                for (var z = 1; z < pic.width; z++) {
+                    pixel = c.getImageData( z, y, 1, 1).data;
+                    /*
+                    Yeah cubes without shader language optimization is not the way forward
+                    i.e. displaying a few hundred cubes slows it all down to a crawl.
+                    It's not impossible, see here:
+                    https://codepen.io/zadvorsky/pen/mwqQaJ
+                    But will require much more study.
+                    */
                     /*
                     var cube = new THREE.Mesh(
                     new THREE.BoxGeometry( 1, 1, 1),
@@ -628,70 +792,134 @@ function add_nebulae_to_scene( scene, nebulae_data) {
                         opacity: 0.1,
                     })
                     );
-                    cube.position.x = 50 + x
+                    
+                    cube.position.x = 50
                     cube.position.y = 50 + pic.height - y
                     cube.position.z = 100 + z
-                    */
-                    depth_x = 50 + x
-                    dimm_factor = (1 - Math.abs( x / depth)) ** 3
-                    if (dimm_factor < 0.1) continue;
-                    /*
-                    // cube.material.opacity = 0.3 * dimm_factor
-                    // pixel = c.getImageData( z, y, 1, 1).data;
+                    // cube.material.opacity = 0.3
+                    // cube.material.color = Math.random() * 0x000080 + 0x606080,
+                    // cube.material.color = new THREE.Color()
+                    cube.material.opacity = 0.3; // * (x+y+z)/30
                     // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                    pixel = c.getImageData( z, y, 1, 1).data;
                     cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
                     // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
                     // console.log('cube: ', cube)
                     scene.add(cube);
                     */
-                    positions.push(depth_x)
+                    x = 50
+                    positions.push(x)
                     positions.push(pic.height - y)
                     positions.push(z)
                     colors.push( pixel[0] / 256)
                     colors.push( pixel[1] / 256)
                     colors.push( pixel[2] / 256)
-                    // colors.push( dimm_factor * pixel[0] / 256)
-                    // colors.push( dimm_factor * pixel[1] / 256)
-                    // colors.push( dimm_factor * pixel[2] / 256)
-                    sizes.push( dimm_factor * 5)
+                    sizes.push( 15)
 
-                }
+
+                    // Add depth cubes/pixels
+                    // var depth = parseInt( 0.25 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+                    
+                    // Depth based on pixel value
+                    // var depth = parseInt( 0.5 * pic.width * (pixel[0] + pixel[1] + pixel[2]) / (256 * 3))
+
+                    // Depth based on it being a spheroid
+                    var depth = 0.5 * parseInt(
+                        Math.sqrt(
+                            Math.cos( 
+                            Math.PI * Math.abs( 0.5*pic.height - y) / pic.height
+                        )**2
+                        *
+                        Math.sin( 
+                            Math.PI * Math.abs( 0.5*pic.width - x) / pic.width
+                        )**2
+                        )
+                        * pic.width
+                    )
+
+                    console.log( 'depth', depth)
+
+
+                    var dimm_factor = 1;
+                    var depth_x = 0;
+                    for (var x = -depth; x < depth; x++) {
+                        /*
+                        var cube = new THREE.Mesh(
+                        new THREE.BoxGeometry( 1, 1, 1),
+                        new THREE.MeshBasicMaterial({
+                            // color: Math.random() * 0x0000FF, // + 0x000080,
+                            color: 0x0000FF,
+                            // color: 0x8888AA,
+                            transparent: true,
+                            // opacity: Math.random() * 0.1,
+                            opacity: 0.1,
+                        })
+                        );
+                        cube.position.x = 50 + x
+                        cube.position.y = 50 + pic.height - y
+                        cube.position.z = 100 + z
+                        */
+                        depth_x = 50 + x
+                        dimm_factor = (1 - Math.abs( x / depth)) ** 3
+                        if (dimm_factor < 0.1) continue;
+                        /*
+                        // cube.material.opacity = 0.3 * dimm_factor
+                        // pixel = c.getImageData( z, y, 1, 1).data;
+                        // var hex = "RGB = " + p[0]+", "+p[1]+", "+p[2];
+                        cube.material.color.setRGB( pixel[0] / 256, pixel[1] / 256, pixel[2] / 256) // + 0x000080,
+                        // cube.scale.x= cube.scale.y = cube.scale.z = Math.random();
+                        // console.log('cube: ', cube)
+                        scene.add(cube);
+                        */
+                        positions.push(depth_x)
+                        positions.push(pic.height - y)
+                        positions.push(z)
+                        colors.push( pixel[0] / 256)
+                        colors.push( pixel[1] / 256)
+                        colors.push( pixel[2] / 256)
+                        // colors.push( dimm_factor * pixel[0] / 256)
+                        // colors.push( dimm_factor * pixel[1] / 256)
+                        // colors.push( dimm_factor * pixel[2] / 256)
+                        sizes.push( dimm_factor * 5)
+
+                    }
+                    
+
                 
-
-            
+                }
             }
-        }
 
-        // Arrays have now been populated with x,y,z and color info
-        console.log( positions, colors)
-        stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( new Float32Array(sizes), 1 ) );
-        stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( positions), 3 ) );
-        stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( new Float32Array(colors), 3 ) );
+            // Arrays have now been populated with x,y,z and color info
+            console.log( positions, colors)
+            stars_geometry.setAttribute( 'size', new THREE.BufferAttribute( new Float32Array(sizes), 1 ) );
+            stars_geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( positions), 3 ) );
+            stars_geometry.setAttribute( 'customColor', new THREE.BufferAttribute( new Float32Array(colors), 3 ) );
 
-        const point_material = new THREE.ShaderMaterial( {
-            uniforms: {
-                color: { value: new THREE.Color( 0xffffff ) },
-                // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
-                // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
-                pointTexture: { value: new THREE.TextureLoader().load( 'images/cloud1.png' ) }
+            const point_material = new THREE.ShaderMaterial( {
+                uniforms: {
+                    color: { value: new THREE.Color( 0xffffff ) },
+                    // pointTexture: { value: new THREE.TextureLoader().load( 'three.js/textures/sprites/spark1.png' ) }
+                    // https://www.cleanpng.com/png-sparkling-star-download-light-302543/download-png.html
+                    pointTexture: { value: new THREE.TextureLoader().load( 'images/cloud1.png' ) }
 
-            },
-            vertexShader: document.getElementById( 'vertexshader' ).textContent,
-            fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+                },
+                vertexShader: document.getElementById( 'vertexshader' ).textContent,
+                fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
 
-            // blending: THREE.AdditiveBlending, <- Makes nebula way too bright
-            // blending: THREE.Normal, // <- is OK
-            // blending: THREE.Multiply, <- Maybe not so good as causes dimming from some angles
-            depthTest: false,
-            transparent: true,
-            vertexColors : true
-            // flatShading: true
+                // blending: THREE.AdditiveBlending, <- Makes nebula way too bright
+                // blending: THREE.Normal, // <- is OK
+                // blending: THREE.Multiply, <- Maybe not so good as causes dimming from some angles
+                depthTest: false,
+                transparent: true,
+                vertexColors : true
+                // flatShading: true
 
-        } );
-        var points = new THREE.Points( stars_geometry, point_material );
-        scene.add( points );
+            } );
+            var points = new THREE.Points( stars_geometry, point_material );
+            scene.add( points );
 
-
+    }
+    
 
 
 
@@ -904,15 +1132,15 @@ function add_cubes_to_scene( scene, cube_data) {
     // }
 }
 
-function add_labels_to_scene( scene, labels) {
+function add_labels_to_scene( scene, labels, size = 1) {
     
     var line_points = [];
     var i = 0;
     var new_line = []
     // var poi_dist = 0.2;
     // var text_size = 0.2;
-    var poi_dist = 4;
-    var text_size = 1;
+    var poi_dist = 4 * size;
+    var text_size = 1 * size;
 
     var l;
 
@@ -959,6 +1187,7 @@ function add_labels_to_scene( scene, labels) {
 
         // const shapes = font.generateShapes( message, 100 );
         const shapes = label_font.generateShapes( l[3], text_size );
+        // console.log( l[3])
 
         const geometry = new THREE.ShapeGeometry( shapes );
 
@@ -987,7 +1216,7 @@ function add_labels_to_scene( scene, labels) {
 
 }
 
-function fix_labels( ) {
+function fix_labels_orientation( ) {
     // console.log('fix_labels() ...')
     if (labels_loaded) {
         // rotate them towards the camera
@@ -1001,7 +1230,7 @@ function fix_labels( ) {
 }
 
 function add_stars_to_scene( scene, star_coords) {
-    console.log('Entering stars ....')
+    // console.log('Entering stars ....')
 
     const positions = [];
     // const size_buckets = {};
@@ -1364,12 +1593,13 @@ function init() {
 
     scene = new THREE.Scene();
 
-    var far_away = 10**6
+    // Andromeda is 2.5 * 10**6 away
+    var far_away = 10**7
     perspectiveCamera = new THREE.PerspectiveCamera( 60, aspect, 1, far_away );
     
     // Position next to Hyades, looking towards Sol & Galaxy center
-    var pos = icrs_to_threejs( [100, 150, 60])
-    perspectiveCamera.position.set( pos[0], pos[1], pos[2] )
+    var p = earth_hyades_milkyway_bg
+    perspectiveCamera.position.set( p[0], p[1], p[2] )
     perspectiveCamera.lookAt( 0, -50, 0 );
 
     orthographicCamera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, 1, star_max_dist );
@@ -1430,8 +1660,11 @@ function init() {
     // console.log('DEBUG2', star_max_dist)
     // console.log('DEBUG2', Object.keys(all_stars))
 
-    const axesHelper = new THREE.AxesHelper( star_max_dist );
-    scene.add( axesHelper );
+    if (we_want_axes) {
+        scene.remove( axesHelper)
+        axesHelper = new THREE.AxesHelper( star_max_dist );
+        scene.add( axesHelper );
+    }
 
 
 
@@ -1479,8 +1712,15 @@ function init() {
                     [ 0, 0, 0, 'Sol (you are here)']
                 ].concat(tour_targets).concat(old_tour_targets)
                 )
+                // console.log( star_labels)
+                add_labels_to_scene( scene, [
+                    [ 0, 0, 0, 'The sun']
+                ].concat( star_labels), 0.3
+                )
+
+
             }
-            fix_labels( );
+            fix_labels_orientation();
         }
         // console.log(label_font)
     }, 1000);
@@ -1634,7 +1874,41 @@ function init() {
 
     scene.add( controls.getObject() );
 
+    document.onpointerup = function(event) {
+        switch ( event.button ) {
+            case 0: 
+                // console.log("Left Button is UP."); 
+                break;
+            case 1: 
+                // console.log("Middle Button is UP."); 
+            //Beware this work not on mac with magic mouse!
+                break;
+            case 2: 
+                // console.log("Right Button is UP.");
+                zoom_camera( false);
+                break;
+        }
+    }
+
+    document.onpointerdown = function(event) {
+        switch ( event.button ) {
+            case 0: 
+                // console.log("Left Button is down."); 
+                break;
+            case 1: 
+                // console.log("Middle Button is down."); 
+                //Beware this work not on mac with magic mouse!
+                break;
+            case 2: 
+                // console.log("Right Button is down.");
+                zoom_camera( true);
+                break;
+        }
+    }
+
+
     const onKeyDown = function ( event ) {
+        // console.log( event.button)
         switch ( event.code ) {
             case 'ArrowUp':
             case 'KeyW':
@@ -1704,12 +1978,7 @@ function init() {
                 break;
 
             case 'KeyL':
-                stars_filter = 'galactic';
-                camera.position.x = 1000;
-                camera.position.y = 10000;
-                camera.position.z = 1000;
-                camera.lookAt( 0, 0, 0);
-                reload_all_stars();
+                slow_down_cowboy = ! slow_down_cowboy
                 break;
 
             case 'KeyG':
@@ -1745,7 +2014,19 @@ function init() {
 
                 break;
 
+            case 'KeyX':
+                we_want_axes = ! we_want_axes
+                if (we_want_axes) {
+                    scene.remove( axesHelper)
+                    axesHelper = new THREE.AxesHelper( star_max_dist );
+                    scene.add( axesHelper );
+                } else {
+                    scene.remove( axesHelper );
+                }
 
+                break;
+
+                
             case 'KeyT':
                 tour_active = ! tour_active
                 // if (tour_active) controls.unlock();
@@ -1782,6 +2063,21 @@ function init() {
                 // tour_busy = false
                 // tour_object_panning = false
                 break;
+
+            case 'KeyM':
+                var p = earth_hyades_milkyway_bg
+                perspectiveCamera.position.set( p[0], p[1], p[2] )
+                perspectiveCamera.lookAt( 0, -50, 0 );
+                break;
+
+            case 'KeyZ':
+                global_render_load_pause = ! global_render_load_pause
+                if (global_render_load_pause)
+                    statusline += 'Loading & rendering paused!'
+                break;
+
+
+            
         }
     };
 
@@ -1849,13 +2145,15 @@ function reload_all_stars() {
     ])
 
 
-
-    const axesHelper = new THREE.AxesHelper( 100 );
-    scene.add( axesHelper );
+    if (we_want_axes) {
+        scene.remove( axesHelper );
+        axesHelper = new THREE.AxesHelper( 100 );
+        scene.add( axesHelper );
+    }
 
     // add_cubes_to_scene( scene, [])
 
-    add_nebulae_to_scene( scene, [])
+    add_nebulae_to_scene( scene, nebula_data)
     
     rendered_sky_elements = []
     console.log('Full data reload should occur automatically now...')
@@ -1882,7 +2180,7 @@ function load_next_sky_element() {
             // console.log( 'Need to load element ' + element)
             // only parse 1 to save resources
             
-            if (! loading_lock) {
+            if ((! loading_lock) && (! global_render_load_pause)) {
                 loadScript( scene, element);
             }
             // add_stars_to_scene( scene, all_stars[ element])
@@ -1939,9 +2237,12 @@ function load_available_sky_elements() {
 
     if ( (rendered_sky_elements.length == 100) && ! axes_added) {
         // console.log('TEST')
-        const axesHelper = new THREE.AxesHelper( star_max_dist );
-        scene.add( axesHelper );
-        axes_added = true;
+        if (we_want_axes) {
+            scene.remove( axesHelper)
+            axesHelper = new THREE.AxesHelper( star_max_dist );
+            scene.add( axesHelper );
+            axes_added = true;
+        }
 
     }
 }
@@ -1961,13 +2262,20 @@ function tour_update( camera) {
         tour_busy = true;
         var t = icrs_to_threejs( tour_targets[ tour_target_index]);
         tour_target_name = tour_targets[ tour_target_index][3]
+
+        var tour_target_distance = tour_orbit_radius_default
+        // increase distance if target is big...like a galaxy maybe ;) 
+        if (tour_targets[ tour_target_index].length > 4) {
+            tour_target_distance = tour_targets[ tour_target_index][4]
+        }
+
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
 
 
             
             tour_stops = [
-                [t[0] - tour_orbit_radius, t[1], t[2]]
+                [t[0] - tour_target_distance, t[1], t[2]]
             ]
 
             /*
@@ -1978,10 +2286,10 @@ function tour_update( camera) {
             */
             
             var xdiff, ydiff, zdiff;
-            var cur_radius = tour_orbit_radius;
+            var cur_radius = tour_target_distance;
             var up_or_down = (Math.random() < 0.5 ? 1 : -1)
             for (var i = orbit_step_size; i < Math.PI * 4; i += orbit_step_size) {
-                cur_radius = tour_orbit_radius + Math.sin(i * 0.2) * 0.6 * tour_orbit_radius;
+                cur_radius = tour_target_distance + Math.sin(i * 0.2) * 0.6 * tour_target_distance;
                 xdiff = t[0] - Math.cos(i) * cur_radius;
                 ydiff = t[1] + up_or_down * Math.sin(i * 0.4) * 0.8 * cur_radius;
                 zdiff = t[2] + Math.sin(i) * cur_radius;
@@ -2120,6 +2428,45 @@ function onWindowResize() {
 
 }
 
+function zoom_camera( zoom_in) {
+ 
+    // camera = perspectiveCamera;
+    var old_fov = perspectiveCamera.fov;
+    var new_fov;
+    if (zoom_in) {
+        new_fov = default_camera_fov / 5
+        // perspectiveCamera.zoom = 0.1
+    } else {
+        new_fov = default_camera_fov
+        // perspectiveCamera.zoom = 1
+    }
+    // perspectiveCamera.updateProjectionMatrix();
+    // console.log( perspectiveCamera.fov)
+
+    perspectiveCamera.fov = new_fov
+    perspectiveCamera.updateProjectionMatrix();
+
+    // Why doesn't this tween work?
+    // var tween = new TWEEN.Tween(old_fov)
+    //     .to( new_fov, 1000)
+    //     .easing( TWEEN.Easing.Linear.None)
+    //     // .easing( TWEEN.Easing.Cubic.InOut)
+    //     // .easing( TWEEN.Easing.Linear.None)            
+    //     .onUpdate( function () {
+    //         // console.log( 'ALERT4', camera.position.x, from.x)
+    //         // camera.position.x = this.x;
+    //         // camera.position.set( from.x, from.y, from.z);
+    //         perspectiveCamera.fov = old_fov
+    //         perspectiveCamera.updateProjectionMatrix();
+    //     })
+    //     // .onComplete( function () {
+    //     //     // camera.lookAt( t[0], t[1], t[2]);
+    //     //     // tour_busy = false
+    //     //     // tour_object_panning = false;
+    //     // })
+    //     .start();
+}
+
 function animate() {
     requestAnimationFrame( animate );
 
@@ -2203,6 +2550,8 @@ function animate() {
 
     // }
     var max_velocity = 300;
+    if (slow_down_cowboy) max_velocity = max_velocity / 10;
+
     if (velocity.x > max_velocity) velocity.x = max_velocity;
     if (velocity.y > max_velocity) velocity.y = max_velocity;
     if (velocity.z > max_velocity) velocity.z = max_velocity;
@@ -2240,7 +2589,8 @@ function animate() {
 
 
     // console.log('render now')
-    renderer.render( scene, camera );
+    if (! global_render_load_pause)
+        renderer.render( scene, camera );
 
     var tjs_campos = [ camera.position.x, camera.position.y, camera.position.z]
     // convert Three.js cam positions to ICSR coords
@@ -2259,8 +2609,8 @@ function animate() {
     var RA_mins = ((RA_degrees - RA_hours * 15) / 15 * 60)
     var RA_secs = (RA_mins - Math.floor( RA_mins)) * 60;
 
-    document.getElementById('statusline').innerText = 
-    '[ Camera data ]\n'
+    var hud_text = 
+    '[ Starship data ]\n'
         + 'Position (x,y,z) in ly:\n  ' 
         + cam_c[0].toFixed(2) + ', '
         + cam_c[1].toFixed(2) + ', ' 
@@ -2286,8 +2636,13 @@ function animate() {
         + '   ' + data_set + ' (' + data_set_type + ')'
         + '\nTotal stars/cubes in scene:\n  ' 
         + total_stars_in_scene.toLocaleString()+'/'+total_cubes_in_scene.toLocaleString()
-        + '\n' + statusline
+    
+        if (slow_down_cowboy)
+            hud_text += '\nSlowdown activated (L to toggle)'
+        
+        hud_text += '\n' + statusline
         ;
+        document.getElementById('statusline').innerText = hud_text;
 
 
 
@@ -2295,9 +2650,10 @@ function animate() {
 
 function render() {
 
-    const camera = ( params.orthographicCamera ) ? orthographicCamera : perspectiveCamera;
+    // const camera = ( params.orthographicCamera ) ? orthographicCamera : perspectiveCamera;
+    // const camera = ( params.orthographicCamera ) ? orthographicCamera : perspectiveCamera;
 
-    delta += clock.getDelta();
+    // delta += clock.getDelta();
 
 //    if (delta  > interval) {
 //        // The draw or time dependent code are here
@@ -2307,7 +2663,7 @@ function render() {
 //        delta = delta % interval;
 //    }
 
-    renderer.render( scene, camera );
+    renderer.render( scene, perspectiveCamera );
 
 }
 
