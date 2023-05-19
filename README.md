@@ -117,8 +117,8 @@ Tech details of how data is extracted/stored/processed:
 
 - Inspiration was gained from the awesome pioneering work done by @flimshaw who used the 2016 Gaia DR1 data to construct a 3D visualization of it:
   - Explanation: https://medium.com/@flimshaw/torrenting-the-galaxy-extracting-2-million-3d-stars-from-180gb-of-csvs-457ff70c0f93#.7g0zpkwnk
-  - The actual 3D demo: https://charliehoey.com/threejs-demos/gaia_dr1.html
-- https://dc.zah.uni-heidelberg.de/tableinfo/cns5.main
+  - His actual 3D demo: https://charliehoey.com/threejs-demos/gaia_dr1.html
+- The Fifth Catalogue of Nearby Stars (CNS5) - https://dc.zah.uni-heidelberg.de/tableinfo/cns5.main
 - Astrometry.net for providing Astrobin with the data I desperately need for the data files (i.e. ra, dec, rotation, field radius)
 - Astrobin and it's users, namely for their beautiful nebulae etc images:
   - Andromeda_Galaxy:  Yann SAINTY - https://www.astrobin.com/69vhka/

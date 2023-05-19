@@ -2,7 +2,7 @@ var gaia_web_datasets = {
 'wp-open-clusters-150ly': 'stars', 
 'px80_2000ly_15mag': 'stars',
 'px50_4000ly_-1mag': 'stars', 
-'px20_10000ly_-3mag': 'stars',
+'px20_20000ly_-3mag': 'stars',
 'px20_10000ly_15mag': 'stars',
 
 /*
