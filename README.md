@@ -108,17 +108,44 @@ Tech details of how data is extracted/stored/processed:
   - https://en.wikipedia.org/wiki/Milky_Way#Astrography
   - https://memory-alpha.fandom.com/wiki/Alpha_Quadrant?file=STO_galaxy_map.png 😉
 
+# Other visualizations
+
+- Gaia Sky (also awesome!): https://zah.uni-heidelberg.de/gaia/outreach/gaiasky
+- Gaia's own visualization page: https://gea.esac.esa.int/archive/visualization/
+
 # Credits
 
 - Inspiration was gained from the awesome pioneering work done by @flimshaw who used the 2016 Gaia DR1 data to construct a 3D visualization of it:
   - Explanation: https://medium.com/@flimshaw/torrenting-the-galaxy-extracting-2-million-3d-stars-from-180gb-of-csvs-457ff70c0f93#.7g0zpkwnk
   - The actual 3D demo: https://charliehoey.com/threejs-demos/gaia_dr1.html
+- https://dc.zah.uni-heidelberg.de/tableinfo/cns5.main
+- Astrometry.net for providing Astrobin with the data I desperately need for the data files (i.e. ra, dec, rotation, field radius)
 - Astrobin and it's users, namely for their beautiful nebulae etc images:
-  - TODO
+  - Andromeda_Galaxy:  Yann SAINTY - https://www.astrobin.com/69vhka/
+  - Barnards_Loop: - 
+  - Butterfly: n/a 
+  - California_Nebula: David McGarvey - https://www.astrobin.com/8j3q6b/0/
+  - Carina: Bray Falls - https://www.astrobin.com/81eie2/
+  - Cave_Nebula: Chuck's Astrophotography  - https://www.astrobin.com/370910/D/
+  - Crab: AdamDudko - https://www.astrobin.com/8bfggs/C/
+  - Dumbbell: Victor Van Puyenbroeck - https://www.astrobin.com/d49fu9/
+  - HST_Butterfly: NASA et al - https://www.nasa.gov/multimedia/imagegallery/image_feature_2526.html
+  - HST_Helix: NASA et al. - https://hubblesite.org/contents/media/images/2004/32/1608-Image.html
+  - HST_M57: n/a 
+  - Horsehead_Nebula: Bernhard Zimmermann - https://www.astrobin.com/391473/
+  - LMC: Astro_m - https://www.astrobin.com/0n125h/
+  - Lagoon: Jae Lee - https://www.astrobin.com/dctny6/
+  - Little Dumbbell: Jim Matzger - https://www.astrobin.com/391294/
+  - M16_Eagle_Nebula_wide: David (Deddy) Dayag - https://en.wikipedia.org/wiki/File:Eagle_nebula_by_Deddy_Dayag.jpg
+  - Orion: Jeff Marston - https://www.astrobin.com/gbree6/
+  - RCW58: Neil Corke - https://www.astrobin.com/afl92i/
+  - Ring_Nebula: Łukasz Sujka - https://www.astrobin.com/jgv4i3/
+  - SMC:  Evan Tsai - https://www.astrobin.com/5viswi/B/
+  - Sag_Astar: - 
+  - Sh2-54: John Favalessa - https://www.astrobin.com/c3az1p/
+  - Swan: AstroDinsk - https://www.astrobin.com/tsrhks/
+  - Trifid: Charles Pevsner - https://www.astrobin.com/ohi7s6/
+  - Veil: Clément Ver Eecke - https://www.astrobin.com/wx5lp1/
   - ...
-- Astrometry.net for providing Astrobin with the data I desperately need for the data files (ra, dec, rotation, fov)
 
-# Other visualizations
 
-- Gaia Sky (also awesome!): https://zah.uni-heidelberg.de/gaia/outreach/gaiasky
-- Gaia's own visualization page: https://gea.esac.esa.int/archive/visualization/

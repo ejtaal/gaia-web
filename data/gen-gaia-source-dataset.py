@@ -253,14 +253,16 @@ def gen_hip_tycho_star_names_labels():
     
 def gen_nebulae_set():
     # neb_df = pd.read_csv( '../nebulae/nenulae.tsv', sep='|', index_col=False, names=['dist_pc','ra_text','dec_text','name','stretch'] )
-    neb_df = pd.read_csv( '../nebulae/nebulae.tsv', sep='|', index_col=False)
+    neb_df = pd.read_csv( '../../gaia-web-data/nebulae/nebulae.tsv', sep='|', index_col=False)
     print( neb_df)
     neb_df['ra'] = neb_df.apply( lambda row: ra_text_to_deg( row['ra_text']), axis=1)
     neb_df['dec'] = neb_df.apply( lambda row: dec_text_to_deg( row['dec_text']), axis=1)
+    neb_df['fieldradius_arcmins'] = neb_df.apply( lambda row: fr_text_to_deg( row['fieldradius_text']), axis=1)
     neb_df['dist_pc'] = neb_df['dist'] / lightyear_p_parsec
     neb_df['size_ly'] = np.sqrt(2) * neb_df['dist'] * np.tan( DEG2RAD * neb_df['fieldradius_arcmins'] / 60)
     neb_df = pandas_calc_xyz( neb_df)    
-    print( neb_df)
+    # print( neb_df)
+    print( neb_df[ ['dirname', 'ra_text', 'ra', 'dec_text', 'dec', 'size_ly']])
 
     df = neb_df[['x','y','z','size_ly','rotation_deg','dirname','name']]
     js_prefix = 'var nebula_data = '

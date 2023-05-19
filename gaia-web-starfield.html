@@ -370,6 +370,11 @@ let stars_filter = 'da_hood';
 // let stars_filter = 'galactic';
 let prev_stars_filter = ''; // Set to empty to force reload @ reload_all_stars() call
 
+let nebulae_basedir = '../gaia-web-data/nebulae';
+let nebula_being_loaded = false;
+let nebula_loading = 0;
+let nebula_loaded = 0;
+
 let tour_active = false;
 let tour_speed = 0;
 let tour_target_arrived = false;
@@ -419,6 +424,9 @@ let old_tour_targets = [
     ];
 
 let tour_targets = wp_open_clusters
+
+tour_targets = nebula_data.concat( tour_targets)
+
 
 let label_font;
 let labels_loaded = false;
@@ -531,7 +539,7 @@ function icrs_to_threejs( c, reverse = false) {
 
 function add_nebulae_to_scene( scene, nebulae_data) {
     // console.log('Entering nebulae....')
-    statusline = 'Loading nebulae into scene...'
+    nebula_being_loaded = true;
     // return 0
 
     var nebula_targets = []
@@ -542,7 +550,6 @@ function add_nebulae_to_scene( scene, nebulae_data) {
 
         // MeshPhongMaterial needs light, else it will be black
         // scene.add(new THREE.AmbientLight(0xAAAAAA))
-        scene.add(new THREE.AmbientLight(0xFFFFFF))
 
         var ni = 0;
         for ( ni = 0; ni < nebulae_data.length; ni++) {
@@ -557,12 +564,12 @@ function add_nebulae_to_scene( scene, nebulae_data) {
             nebula_targets.push( [x, y, z, name, size])
 
             // let neb_map = new THREE.TextureLoader().load(`nebulae/${dirname}/in.jpg`);
-            let neb_map = new THREE.TextureLoader().load(`nebulae/${dirname}/out.jpg`);
+            let neb_map = new THREE.TextureLoader().load(`${nebulae_basedir}/${dirname}/out.jpg`);
 
 
-            let neb_dmap = new THREE.TextureLoader().load(`nebulae/${dirname}/dmap.jpg`);
-            let neb_amap = new THREE.TextureLoader().load(`nebulae/${dirname}/amap.jpg`);
-            let neb_bmap = new THREE.TextureLoader().load(`nebulae/${dirname}/bmap.jpg`);
+            let neb_dmap = new THREE.TextureLoader().load(`${nebulae_basedir}/${dirname}/dmap.jpg`);
+            let neb_amap = new THREE.TextureLoader().load(`${nebulae_basedir}/${dirname}/amap.jpg`);
+            let neb_bmap = new THREE.TextureLoader().load(`${nebulae_basedir}/${dirname}/bmap.jpg`);
 
             var displacement_opacity_array = [
                 // [ 25, -1, 0.1, neb_bmap ],
@@ -570,8 +577,8 @@ function add_nebulae_to_scene( scene, nebulae_data) {
                 // // [ 10, -2, 0.5, neb_bmap ],
                 // [ 5, -2, 0.2, neb_bmap ],
                 [ 0, 0, 1, neb_bmap],
-                [ -25 * size / 100, 1, 1, neb_map ],
-                [ 25 * size / 100, -1, 1, neb_map ],
+                [ -25 * size / 100, 0, 1, neb_bmap ], // Perhaps bmap as we don't know the shape of the back of the nebula with any certainty
+                [ 25 * size / 100, 0, 1, neb_map ],
                 // [ -25, 1, 0.2 ],
                 // [ -15, 2, 0.1 ],
             ]
@@ -645,8 +652,12 @@ function add_nebulae_to_scene( scene, nebulae_data) {
 
         }
         // add_labels_to_scene( scene, nebula_targets)
-        tour_targets = nebula_targets.concat( tour_targets)
     }
+
+    // console.log('Exiting nebula...DEBUG555')
+    nebula_being_loaded = false;
+    return
+
 
     if (method == 0) {
         // The old 
@@ -920,7 +931,6 @@ function add_nebulae_to_scene( scene, nebulae_data) {
 
     }
     
-
 
 
 
@@ -1680,8 +1690,21 @@ function init() {
         // method to be executed;
         // console.log( 'DEBUG5: ', Date())
         // console.log('DEBUG51 loading lock', loading_lock)
-
+        
         if (! loading_lock && initial_scene_reloaded) load_next_sky_element();
+        
+        // console.log('DEBUG51 loading lock', nebula_being_loaded)
+        if ((!nebula_being_loaded) && (nebula_loaded == nebula_loading) && (nebula_loaded < nebula_data.length)) {
+            nebula_loading++;
+            var next_neb = nebula_data[ nebula_loading-1];
+            statusline = 
+                'Loading nebula ' + nebula_loading + ' of ' + nebula_data.length + ' into scene...'
+            add_nebulae_to_scene( scene, [ next_neb]);
+            nebula_loaded = nebula_loading;
+        }
+
+        // if (nebulae_loading == false)
+        //     add_nebulae_to_scene( scene, nebula_data);
     }, 2000);
 
     const interval3 = setInterval(function() {
@@ -2084,6 +2107,8 @@ function init() {
     document.addEventListener( 'keydown', onKeyDown );
     document.addEventListener( 'keyup', onKeyUp );
 
+
+
     reload_all_stars()
 }
 
@@ -2133,6 +2158,13 @@ function reload_all_stars() {
     total_cubes_in_scene = 0
     data_set_type = gaia_web_datasets[data_set]
     axes_added = false
+    nebula_being_loaded = false
+    nebula_loading = 0
+    nebula_loaded = 0
+
+    // Needed for the nebulae to look nice
+    scene.add(new THREE.AmbientLight(0xFFFFFF))
+
 
     // for (var i = 0; i < 2; i++) available_elements.push( i);
 
@@ -2152,8 +2184,8 @@ function reload_all_stars() {
     }
 
     // add_cubes_to_scene( scene, [])
-
-    add_nebulae_to_scene( scene, nebula_data)
+    // setTimeout('JsFunction1(val);', 0); 
+    // setTimeout('add_nebulae_to_scene( scene, nebula_data);', 0); 
     
     rendered_sky_elements = []
     console.log('Full data reload should occur automatically now...')
@@ -2163,6 +2195,8 @@ function reload_all_stars() {
     prev_data_set = data_set
 
     initial_scene_reloaded = true;
+
+
 }
 
 function load_next_sky_element() {
@@ -2235,14 +2269,18 @@ function load_available_sky_elements() {
         
     }
 
-    if ( (rendered_sky_elements.length == 100) && ! axes_added) {
+    // if (nebulae_loading == false)
+    //     add_nebulae_to_scene( scene, nebula_data);
+
+
+    if ( (rendered_sky_elements.length == 100) && ! axes_added && we_want_axes) {
         // console.log('TEST')
-        if (we_want_axes) {
-            scene.remove( axesHelper)
-            axesHelper = new THREE.AxesHelper( star_max_dist );
-            scene.add( axesHelper );
-            axes_added = true;
-        }
+        // if (we_want_axes) {
+        scene.remove( axesHelper)
+        axesHelper = new THREE.AxesHelper( star_max_dist );
+        scene.add( axesHelper );
+        axes_added = true;
+        // }
 
     }
 }
@@ -2254,9 +2292,13 @@ function tour_update( camera) {
 
     // console.log('tour busy', tour_busy)
 
+    var tour_type = 'circle_infront' // <- default for nebulae so the volumetric illusion isn't shattered to pieces ;)
+    // var tour_type = 'circle_around' <- default for star clusters
+
     var easing;
     var easing_time = 5000;
     var orbit_step_size = 0.1;
+    var tour_target_size = 0;
     if ((tour_active && ! tour_busy && (tour_targets.length > 0)) || (stop_tween)) {
         tour_started = true;
         tour_busy = true;
@@ -2266,34 +2308,92 @@ function tour_update( camera) {
         var tour_target_distance = tour_orbit_radius_default
         // increase distance if target is big...like a galaxy maybe ;) 
         if (tour_targets[ tour_target_index].length > 4) {
-            tour_target_distance = tour_targets[ tour_target_index][4]
+            tour_target_size = tour_targets[ tour_target_index][4]
+            tour_target_distance = 0.8 * tour_targets[ tour_target_index][4]
+        } else {
+            tour_target_distance = tour_orbit_radius_default
+            tour_target_size = tour_target_distance
+            tour_type = 'circle_around'
         }
 
         if (tour_stops.length == 0) {
             easing = TWEEN.Easing.Circular.InOut;
 
 
-            
-            tour_stops = [
-                [t[0] - tour_target_distance, t[1], t[2]]
-            ]
+            if (tour_type == 'circle_infront') {
 
-            /*
-            Calculate a nice pseudo fly around orbit. It's not so much an actual orbit
-            as it is a step-wise walk around the edges of a circle comprising pizza
-            slice triangles. Therefore, flying around stars should now start to 
-            make you feel hungry ;).
-            */
-            
-            var xdiff, ydiff, zdiff;
-            var cur_radius = tour_target_distance;
-            var up_or_down = (Math.random() < 0.5 ? 1 : -1)
-            for (var i = orbit_step_size; i < Math.PI * 4; i += orbit_step_size) {
-                cur_radius = tour_target_distance + Math.sin(i * 0.2) * 0.6 * tour_target_distance;
-                xdiff = t[0] - Math.cos(i) * cur_radius;
-                ydiff = t[1] + up_or_down * Math.sin(i * 0.4) * 0.8 * cur_radius;
-                zdiff = t[2] + Math.sin(i) * cur_radius;
-                tour_stops.push( [xdiff, ydiff, zdiff])
+                var x_sign = Math.sign( t[0])
+                var y_sign = Math.sign( t[1])
+                var z_sign = Math.sign( t[2])
+
+                // calculae three.js ra/dec equivalents
+                var t_3js_ra  = Math.atan2( t[0], t[2])
+                var t_3js_dec = Math.atan2( t[1], Math.sqrt( t[0]**2 + t[2]**2) )
+                var t_3js_dist = Math.sqrt( t[0]**2 + t[1]**2 + t[2]**2) - tour_target_distance
+                
+                // console.log( 'ra deg:', t_3js_ra / DEG2RAD)
+                // console.log( 'dec deg:', t_3js_dec / DEG2RAD)
+
+                var cur_ra;
+                var cur_dec;
+                for (var i = 0; i < Math.PI * 4; i += orbit_step_size) {
+                    //cur_radius = tour_target_distance + Math.sin(i * 0.2) * 0.6 * tour_target_distance;
+                    var angle_radius = Math.sqrt( Math.sin(i * 0.2)) * 0.5 * tour_target_size / t_3js_dist;
+
+                    var cur_ra = t_3js_ra + Math.sin(i) * angle_radius
+                    var cur_dec = t_3js_dec + Math.cos(i) * angle_radius
+                    var z = Math.cos( cur_ra) * Math.cos( cur_dec) * t_3js_dist
+                    var x = Math.sin( cur_ra) * Math.cos( cur_dec) * t_3js_dist
+                    var y = Math.sin( cur_dec) * t_3js_dist
+                    // xdiff = start_point[0] + Math.sin(i) * cur_radius;
+                    // ydiff = t[1] + up_or_down * Math.sin(i * 0.4) * 0.8 * cur_radius;
+                    // zdiff = t[2] + Math.sin(i) * cur_radius;
+
+                    tour_stops.push( [x, y, z])
+                }
+
+
+                // start_point = 
+                //     [   t[0] - tour_target_distance * x_sign, 
+                //         t[1] - tour_target_distance * y_sign, 
+                //         t[2] - tour_target_distance * z_sign 
+                //     ]
+
+                // tour_stops = [
+                //     start_point
+                // ]
+
+                // for (var i = orbit_step_size; i < Math.PI * 4; i += orbit_step_size) {
+                //     cur_radius = tour_target_distance + Math.sin(i * 0.2) * 0.6 * tour_target_distance;
+                //     xdiff = start_point[0] + Math.sin(i) * cur_radius;
+                //     ydiff = t[1] + up_or_down * Math.sin(i * 0.4) * 0.8 * cur_radius;
+                //     zdiff = t[2] + Math.sin(i) * cur_radius;
+                //     tour_stops.push( [xdiff, ydiff, zdiff])
+                // }
+
+                
+            } else {
+                tour_stops = [
+                    [t[0] - tour_target_distance, t[1], t[2]]
+                ]
+
+                /*
+                Calculate a nice pseudo fly around orbit. It's not so much an actual orbit
+                as it is a step-wise walk around the edges of a circle comprising pizza
+                slice triangles. Therefore, flying around stars should now start to 
+                make you feel hungry ;).
+                */
+                
+                var xdiff, ydiff, zdiff;
+                var cur_radius = tour_target_distance;
+                var up_or_down = (Math.random() < 0.5 ? 1 : -1)
+                for (var i = orbit_step_size; i < Math.PI * 4; i += orbit_step_size) {
+                    cur_radius = tour_target_distance + Math.sin(i * 0.2) * 0.6 * tour_target_distance;
+                    xdiff = t[0] - Math.cos(i) * cur_radius;
+                    ydiff = t[1] + up_or_down * Math.sin(i * 0.4) * 0.8 * cur_radius;
+                    zdiff = t[2] + Math.sin(i) * cur_radius;
+                    tour_stops.push( [xdiff, ydiff, zdiff])
+                }
             }
             /*
             // Go around the object along the edges of a cube. Boring and lame.

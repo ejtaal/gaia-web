@@ -513,8 +513,8 @@ def ra_text_to_deg( ra_txt):
 
     # 10^h 05^m 31.90^s
 
-    ra_m1 = re.match( r'(\d+)\^?h\s*([\d\.]+)\^?m\s*([\d\.s]+)\^?s?', ra_txt )
-    ra_m2 = re.match( r'(\d+)\^?h\s*([\d\.]+)\^?m', ra_txt )
+    ra_m1 = re.match( r'(\d+)\^?[h:]\s*([\d\.]+)\^?[m:]\s*([\d\.s]+)\^?s?', ra_txt )
+    ra_m2 = re.match( r'(\d+)\^?[h:]\s*([\d\.]+)\^?[m:]', ra_txt )
     if ra_m1:
         # print(ra_txt)
         # print( ra_m1.group(1))
@@ -542,8 +542,8 @@ def dec_text_to_deg( dec_txt):
 
     #   +00° 04′ 18.0″
 
-    dec_m1 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']\s*([\d\.″]+)[\'″]*', dec_txt )
-    dec_m2 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']', dec_txt )
+    dec_m1 = re.match( r'^([^\d])+(\d+)[°:]\s*([\d\.]+)[′\':]\s*([\d\.″]+)[\'″]*', dec_txt )
+    dec_m2 = re.match( r'^([^\d])+(\d+)[°:]\s*([\d\.]+)[′\':]', dec_txt )
     if dec_m1:
         # print( dec_txt, dec_m1.group(2), dec_m1.group(3), dec_m1.group(4))
         # exit(9)
@@ -553,7 +553,7 @@ def dec_text_to_deg( dec_txt):
         # To accomodate Astrobin, e.g.: -22°58′43″.73
         if '″' in secs:
             secs = secs.replace('″', '')
-        print(secs)
+        # print(secs)
         dec += float( secs) / 60 / 60
         if dec_m1.group(1) in ['-','−']:
             dec = -dec
@@ -563,6 +563,47 @@ def dec_text_to_deg( dec_txt):
         if dec_m2.group(1) in ['-','−']:
             dec = -dec
     return dec
+
+def fr_text_to_deg( fr_txt):
+    # Convert field radius text from astrobin to arcmins
+    fr = 0
+
+    fr_m1 = re.match( r'^([\d\.]+)\s*(.*)', fr_txt )
+    # fr_m2 = re.match( r'^([^\d])+(\d+)°\s*([\d\.]+)[′\']', dec_txt )
+    if fr_m1:
+        # print( fr_txt, fr_m1.group(1), fr_m1.group(2))
+        # exit(9)
+        num = float( fr_m1.group(1))
+        text = fr_m1.group(2)
+        if text in ['degrees']:
+            fr = num * 60
+        elif text in ['arcmins','']:
+            fr = num
+        # secs = dec_m1.group(4)
+        # # To accomodate Astrobin, e.g.: -22°58′43″.73
+        # if '″' in secs:
+        #     secs = secs.replace('″', '')
+        # # print(secs)
+        # dec += float( secs) / 60 / 60
+        # if dec_m1.group(1) in ['-','−']:
+        #     dec = -dec
+    else:
+        # print( fr_txt, fr_m1.group(1), fr_m1.group(2))
+        # exit(9)
+        # assume it was in arcmins all along:
+        fr = float( fr_txt)
+    # elif dec_m2:
+    #     dec += float( dec_m2.group(2))
+    #     dec += float( dec_m2.group(3)) / 60
+    #     if dec_m2.group(1) in ['-','−']:
+    #         dec = -dec
+    return fr
+
+
+
+
+
+
 
 def pandas_calc_xyz( df):
 	# This assumes df has columns ra, dec and dist in deg, deg and ly respectively
