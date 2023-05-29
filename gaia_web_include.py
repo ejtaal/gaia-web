@@ -4,6 +4,7 @@ import numpy as np
 from pprint import pprint
 import os
 import re
+import copy
 
 from concurrent.futures import ProcessPoolExecutor
 
@@ -606,12 +607,15 @@ def fr_text_to_deg( fr_txt):
 
 
 def pandas_calc_xyz( df):
+    df['dist'] = lightyear_p_parsec * 1 / (df["plx"] * 0.001)
 	# This assumes df has columns ra, dec and dist in deg, deg and ly respectively
     df['x'] = np.cos( df['ra'] * DEG2RAD) * np.cos( df['dec'] * DEG2RAD) * df['dist']
     # print("[+] Calculating y's ...")
     df['y'] = np.sin( df['ra'] * DEG2RAD) * np.cos( df['dec'] * DEG2RAD) * df['dist']
     # print("[+] Calculating z's ...")
     df['z'] = np.sin( df['dec'] * DEG2RAD) * df['dist']
+    df['abs_mag'] = df['mag'] + 5 - 5 * np.log10( df['dist'] * lightyear_p_parsec)
+
     return df
  
 
