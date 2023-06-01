@@ -86,3 +86,57 @@ group by abs_mag_rounded
 13	87	218
 14	51	20
 15	32	4
+
+
+# SIMBAD query to get NAME - HIP - DR3 references
+
+-- Find all objects that have both a NAME as well as either a HIP or Gaia DR3 reference
+SELECT 
+-- id1.id, ids.ids
+ID1.OIDREF, ID1.ID
+-- count(ID1.OIDREF)
+--count(*)
+FROM 
+ident AS id1 
+JOIN ids as ids USING(oidref)
+WHERE
+-- WHERE id1.id = 'tet01 Ori C' AND
+(
+    id1.id LIKE 'NAME %'
+  OR id1.id LIKE 'HIP %'
+  OR id1.id LIKE 'Gaia DR3 %'
+)
+AND
+(
+    ids.ids LIKE '%|NAME%'
+  OR ids.ids LIKE 'NAME%')
+AND 
+((
+  ids.ids LIKE '%|Gaia DR3%'
+  OR ids.ids LIKE 'Gaia DR3%'
+ )
+     OR
+(
+  ids.ids LIKE '%|HIP %'
+  OR ids.ids LIKE 'HIP %'
+ )
+)
+;
+
+# The Fifth Catalogue of Nearby Stars (CNS5) - 
+
+https://dc.zah.uni-heidelberg.de/tableinfo/cns5.main
+
+Column info:
+
+g_mag 	G 	G band mean magnitude (corrected) 	mag 	phot.mag;em.opt
+
+parallax 	ϖ 	Absolute trigonometric parallax 	mas 	pos.parallax.trig
+parallax_error 	Err. ϖ 	Error in parallax 	mas 	stat.error;pos.parallax.trig
+
+# HIP data
+
+Original: https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/txt.gz?I/239/hip_main.dat
+
+Revised: https://www.gaia.ac.uk/science/parallax/hipparcos-new-reduction
+

@@ -120,7 +120,7 @@ Tech details of how data is extracted/stored/processed:
   - His actual 3D demo: https://charliehoey.com/threejs-demos/gaia_dr1.html
 - The Fifth Catalogue of Nearby Stars (CNS5) - https://dc.zah.uni-heidelberg.de/tableinfo/cns5.main
 - Astrometry.net for providing Astrobin with the data I desperately need for the data files (i.e. ra, dec, rotation, field radius)
-- Astrobin and it's users, namely for their beautiful nebulae etc images:
+- Astrobin and it's users, namely for their beautiful nebulae etc images (permission pending unless otherwise specified):
   - Andromeda_Galaxy:  Yann SAINTY - https://www.astrobin.com/69vhka/
   - Barnards_Loop: - 
   - Butterfly: n/a 
@@ -145,7 +145,7 @@ Tech details of how data is extracted/stored/processed:
   - Sh2-54: John Favalessa - https://www.astrobin.com/c3az1p/
   - Swan: AstroDinsk - https://www.astrobin.com/tsrhks/
   - Trifid: Charles Pevsner - https://www.astrobin.com/ohi7s6/
-  - Veil: Clément Ver Eecke - https://www.astrobin.com/wx5lp1/
+  - Veil: Clément Ver Eecke - https://www.astrobin.com/wx5lp1/ (Used with permission)
   - ...
 
 

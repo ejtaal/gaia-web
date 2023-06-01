@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>GAIA-Web 3D Starfield v0.4</title>
+		<title>GAIA-Web 3D Starfield v0.5</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="three.js/main.css">
@@ -237,8 +237,7 @@ and ESC to uncapture and return the cursor.
          <script sync type="text/javascript" src="data/hip_resolved_named_stars.js"></script>
          <script sync type="text/javascript" src="data/hip_resolved_labels.js"></script>
          <script sync type="text/javascript" src="data/grand_gaia_source_objects_names.js"></script>
-         
-         
+         <script sync type="text/javascript" src="data/simbad_gaia_dr3_but_no_hip_names.js"></script>
          
          
          <script type="module">
@@ -1202,7 +1201,7 @@ function add_labels_to_scene( scene, labels, size = 1) {
 
         // const shapes = font.generateShapes( message, 100 );
         const shapes = label_font.generateShapes( l[3], text_size );
-        console.log( l[3])
+        // console.log( l[3])
 
         const geometry = new THREE.ShapeGeometry( shapes );
 
@@ -1747,6 +1746,7 @@ function init() {
                 )
                 add_labels_to_scene( scene, hip_resolved_labels, 0.3)
                 add_labels_to_scene( scene, grand_gaia_source_objects_names, 0.3)
+                add_labels_to_scene( scene, simbad_gaia_dr3_but_no_hip_names, 0.3)
 
             }
             fix_labels_orientation();

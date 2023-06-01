@@ -213,11 +213,14 @@ def gen_hip_tycho_star_names_labels():
     cols = ['HIP', 'Common Name', 'RA or equi', 'Dec or equi', 'plx', 'sPar', 'Hp obs', 'Hp Abs', 'V Abs', '(B-V)', '(B-V)T',  '(V-I)', 'Spectrum']
     HIP_redux_2007_df = pd.read_csv( 'HIP-2007-data-redux.csv', sep=',', index_col=False, names=cols, usecols=cols[0:-1] , header=0)
 
-    print( HIP_redux_2007_df)          
+    print( HIP_redux_2007_df)
+
     HIP_redux_2007_df.rename( columns={ 'RA or equi': "ra", 'Dec or equi': "dec", 'Parall.': 'plx', 'Hp obs': 'mag'}, inplace = True )
     # df['abs_mag'] = df['mag'] + 5 - 5 * np.log10( df['dist'] * lightyear_p_parsec)
     HIP_redux_2007_df = pandas_calc_xyz( HIP_redux_2007_df)
     print( HIP_redux_2007_df)          
+    # Some magnitude values are not present in the HIP data (looks like due to negative parallax data), so fill with 0?
+    HIP_redux_2007_df['abs_mag'].fillna( 0, inplace=True)
 
 
     # exit(7)
@@ -332,29 +335,35 @@ def gen_hip_tycho_star_names_labels():
     # all_hip_keys = hip_id_names.keys()
     # all_hip_keys = all_hip_keys
 
-    for hip_key in hip_id_names.keys() + SIMBAD_HIP.keys():
+    for hip_key in list( hip_id_names.keys()) + list( SIMBAD_HIP.keys()):
+        if hip_key in hip_id_names:
+            best_name_to_use = hip_id_names[ hip_key]
+        else:
+            best_name_to_use = SIMBAD_HIP[ hip_key]['name']
+
         gaia_sid = hipp_df[hipp_df['original_ext_source_id'] == int(hip_key)]['source_id'].values
         gaia_sid_dr3 = 0
         gaia_dr3_resolved = False
         gaia_dr3_xyz_resolved = False
         if len(gaia_sid) > 0:
-            gaia_sid_name[ gaia_sid[0]] = hip_id_names[ hip_key]
+
+            gaia_sid_name[ gaia_sid[0]] = best_name_to_use
             gaia_sid_dr3 = gaia_sid[0]
             gaia_dr3_resolved = True
-            print( 'DR3 HIT', hip_key, gaia_sid, hip_id_names[ hip_key] )
+            print( 'DR3 HIT', hip_key, gaia_sid, best_name_to_use )
         else:
-            print( 'MISS', hip_key, hip_id_names[ hip_key] )
+            print( 'MISS', hip_key, best_name_to_use )
             if hip_key in SIMBAD_HIP:
                 simbad_name = SIMBAD_HIP[ hip_key]
                 if SIMBAD_HIP[ hip_key]['gaia_dr3'] != 0:
-                    print( 'BUT SIMBAD HIT', hip_key, SIMBAD_HIP[ hip_key]['gaia_dr3'], hip_id_names[ hip_key] )
-                    gaia_sid_name[ SIMBAD_HIP[ hip_key]['gaia_dr3']] = hip_id_names[ hip_key]
+                    print( 'BUT SIMBAD HIT', hip_key, SIMBAD_HIP[ hip_key]['gaia_dr3'], best_name_to_use )
+                    gaia_sid_name[ SIMBAD_HIP[ hip_key]['gaia_dr3']] = best_name_to_use
                     gaia_sid_dr3 = SIMBAD_HIP[ hip_key]['gaia_dr3']
                     gaia_dr3_resolved = True
                 else:
-                    print( 'SIMBAD DR3 MISS ALSO', hip_key, hip_id_names[ hip_key])
+                    print( 'SIMBAD DR3 MISS ALSO', hip_key, best_name_to_use)
             else:
-                print( 'SIMBAD HIP MISS ALSO?', hip_key, hip_id_names[ hip_key])
+                print( 'SIMBAD HIP MISS ALSO?', hip_key, best_name_to_use)
 
         if gaia_dr3_resolved:
             where_clause = f'where source_id = {gaia_sid_dr3}'
@@ -373,7 +382,7 @@ def gen_hip_tycho_star_names_labels():
                         float( round(r['z'], 1)),
                         # float( round(r['color'], 1)),
                         # float( round(r['abs_mag'], 1)),
-                        hip_id_names[ hip_key]
+                        best_name_to_use
                      ]
                 )
                 gaia_dr3_xyz_resolved = True
@@ -391,8 +400,9 @@ def gen_hip_tycho_star_names_labels():
             # print( 'HIP resolving:', hip_key)
             hip_redux_row = HIP_redux_2007_df[ HIP_redux_2007_df['HIP'] == int(hip_key)]
             if len(hip_redux_row) > 0:
-                # print( hip_redux_row)
+                print( hip_redux_row)
                 r = hip_redux_row
+                # r['abs_mag'].values[0]
                 hip_resolved_objects.append(
                     [
                         round( r['x'].values[0], 1),
@@ -407,7 +417,7 @@ def gen_hip_tycho_star_names_labels():
                         round( r['x'].values[0], 1),
                         round( r['y'].values[0], 1),
                         round( r['z'].values[0], 1),
-                        hip_id_names[ hip_key]
+                        best_name_to_use
                     ]
                 )
                 # print( 'HIP redux HIT', hip_key, gaia_sid, hip_id_names[ hip_key] )
@@ -431,7 +441,7 @@ def gen_hip_tycho_star_names_labels():
                             round( r['x'].values[0], 1),
                             round( r['y'].values[0], 1),
                             round( r['z'].values[0], 1),
-                            hip_id_names[ hip_key]
+                            best_name_to_use
                         ]
                     )
                     # print( hip_resolved_objects)
@@ -442,10 +452,42 @@ def gen_hip_tycho_star_names_labels():
                     pass
 
                 # hip_keys_gaia_xyz_not_resolved.append( hip_key)
-    
+    # exit(0)
+    simbad_gaia_dr3_but_no_hip_names = []
+
+    for simbad_gaia_dr3_key in SIMBAD_NOHIP.keys():
+        where_clause = f'where source_id = {simbad_gaia_dr3_key}'
+        sql_q = f'select source_id,{SELECT_ROUNDED_PG_CLAUSE} FROM "{GRAND_DB_TABLENAME}" {where_clause}'
+        # print(sql_q)
+        results = prep_dbq_pydict( sql_q)
+        # df = pd.read_sql_query( sql_q, conn)
+        # print(results)
+        # exit(8)
+        if len(results) > 0:
+            # print( 'SIMBAD DR3 grand_gaia_source HIT', simbad_gaia_dr3_key, SIMBAD_NOHIP[ simbad_gaia_dr3_key]['name'])
+            r = results[0]
+            simbad_gaia_dr3_but_no_hip_names.append(
+                [
+                    float( round(r['x'], 1)),
+                    float( round(r['y'], 1)),
+                    float( round(r['z'], 1)),
+                    # float( round(r['color'], 1)),
+                    # float( round(r['abs_mag'], 1)),
+                    SIMBAD_NOHIP[ simbad_gaia_dr3_key]['name']
+                    ]
+            )
+            # gaia_dr3_xyz_resolved = True
+            # print( hip_resolved_objects)
+            # exit(9)
+        else:
+            # simbad_gaia_dr3_but_no_hip_names.append( hip_key)
+            # print( 'SIMBAD DR3 grand_gaia_source MISS', simbad_gaia_dr3_key, SIMBAD_NOHIP[ simbad_gaia_dr3_key]['name'])
+            pass
+
+
     print( 'all resolved HIP objects:')
     
-    pprint( hip_resolved_objects)
+    # pprint( hip_resolved_objects)
     cols = ['x','y','z','color','mag']
     hip_resolved_objects_df = pd.DataFrame( data = hip_resolved_objects, columns = cols)
     print( hip_resolved_objects_df)
@@ -465,38 +507,12 @@ def gen_hip_tycho_star_names_labels():
     js_prefix = 'var grand_gaia_source_objects_names = '
     df_write_js_array( "grand_gaia_source_objects_names.js", js_prefix, grand_gaia_source_objects_names_df, cols)
 
-
-    simbad_gaia_dr3_but_no_hip_names = []
-
-    for simbad_gaia_dr3_key in SIMBAD_NOHIP.keys():
-        where_clause = f'where source_id = {simbad_gaia_dr3_key}'
-        sql_q = f'select source_id,{SELECT_ROUNDED_PG_CLAUSE} FROM "{GRAND_DB_TABLENAME}" {where_clause}'
-        print(sql_q)
-        results = prep_dbq_pydict( sql_q)
-        # df = pd.read_sql_query( sql_q, conn)
-        print(results)
-        # exit(8)
-        if len(results) > 0:
-            print( 'SIMBAD DR3 grand_gaia_source HIT')
-            r = results[0]
-            simbad_gaia_dr3_but_no_hip_names.append(
-                [
-                    float( round(r['x'], 1)),
-                    float( round(r['y'], 1)),
-                    float( round(r['z'], 1)),
-                    # float( round(r['color'], 1)),
-                    # float( round(r['abs_mag'], 1)),
-                    SIMBAD_NOHIP[ simbad_gaia_dr3_key]['name']
-                    ]
-            )
-            # gaia_dr3_xyz_resolved = True
-            # print( hip_resolved_objects)
-            exit(9)
-        else:
-            # simbad_gaia_dr3_but_no_hip_names.append( hip_key)
-            print( 'SIMBAD DR3 grand_gaia_source MISS')
     
-    print( simbad_gaia_dr3_but_no_hip_names)
+    # print( simbad_gaia_dr3_but_no_hip_names)
+    simbad_gaia_dr3_but_no_hip_names_df = pd.DataFrame( data = simbad_gaia_dr3_but_no_hip_names, columns = cols)
+    print( simbad_gaia_dr3_but_no_hip_names_df)
+    js_prefix = 'var simbad_gaia_dr3_but_no_hip_names = '
+    df_write_js_array( "simbad_gaia_dr3_but_no_hip_names.js", js_prefix, simbad_gaia_dr3_but_no_hip_names_df, cols)
 
 
 
